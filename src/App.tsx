@@ -15,6 +15,14 @@ type Flight = {
 
 type Assignments = Record<string, { certifier?: string; mechanic?: string }>
 
+type Station = { code: string; name: string; bbox: { lamin: number; lomin: number; lamax: number; lomax: number } }
+
+const STATIONS: Station[] = [
+  { code: 'JFK', name: 'New York JFK', bbox: { lamin: 40.2, lomin: -74.3, lamax: 41.1, lomax: -73.2 } },
+  { code: 'LHR', name: 'London Heathrow', bbox: { lamin: 51.2, lomin: -0.7, lamax: 51.7, lomax: 0.1 } },
+  { code: 'LGW', name: 'London Gatwick', bbox: { lamin: 51.0, lomin: -0.4, lamax: 51.3, lomax: 0.1 } }
+]
+
 const HANDLED_AIRLINES = ['BA', 'EI', 'IB', 'LEVEL', 'AY', 'QF', 'NZ', 'NO', 'Z0', 'NH', 'JL']
 
 const DEFAULT_STAFF = [
@@ -67,6 +75,7 @@ function parseDailyActivity(rows: string[][]) {
   const date = rows.find((r) => /\d{2}\/\d{2}\/\d{4}/.test(r[0] || ''))?.[0]?.split(' ')[0]
   const flights: Flight[] = []
   const staff: Staff[] = []
+  const suggestedAssignments: Assignments = {}
 
   const fs = rows.findIndex((r) => r.includes('A/C REG'))
   for (let i = fs + 1; fs >= 0 && i < rows.length; i++) {
@@ -84,12 +93,23 @@ function parseDailyActivity(rows: string[][]) {
   for (let i = ss + 1; ss >= 0 && i < rows.length; i++) {
     const r = rows[i]
     if ((r[0] || '').startsWith('Shift A')) break
-    if (r[0]) staff.push({ name: r[0], role: 'Mechanic', shift: r[2] })
-    if (r[3]) staff.push({ name: r[3], role: 'Certifier', shift: r[5] })
+    const mech = r[0]
+    const cert = r[3]
+    const op = r[5] || ''
+    if (mech) staff.push({ name: mech, role: 'Mechanic', shift: r[2] })
+    if (cert) staff.push({ name: cert, role: 'Certifier', shift: r[5] })
     if (r[7]) staff.push({ name: r[7], role: 'Mechanic', absence: r[9] || 'Absent' })
+
+    if (/\d/.test(op)) {
+      const nums = op.match(/\d{3,4}\/\d{3,4}/)?.[0]
+      if (nums) {
+        const key = `BA${nums}`
+        suggestedAssignments[key] = { certifier: cert || undefined, mechanic: mech || undefined }
+      }
+    }
   }
 
-  return { date, flights, staff }
+  return { date, flights, staff, suggestedAssignments }
 }
 
 function normalizeTime(v?: string) {
@@ -105,11 +125,19 @@ function toMinutes(v?: string) {
   return Number(t.slice(0, 2)) * 60 + Number(t.slice(2, 4))
 }
 
-async function fetchOpenSkyJfk() {
-  const url = 'https://opensky-network.org/api/states/all?lamin=40.2&lomin=-74.3&lamax=41.1&lomax=-73.2'
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('OpenSky fetch failed')
-  const json = await res.json()
+async function fetchOpenSky(station: Station) {
+  const base = `https://opensky-network.org/api/states/all?lamin=${station.bbox.lamin}&lomin=${station.bbox.lomin}&lamax=${station.bbox.lamax}&lomax=${station.bbox.lomax}`
+  const urls = [base, `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`]
+  let json: any = null
+  for (const url of urls) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) continue
+      json = await res.json()
+      if (json?.states) break
+    } catch {}
+  }
+  if (!json?.states) throw new Error('OpenSky fetch failed or blocked (CORS/rate limit)')
   const states = (json.states || []) as any[]
   const prefixes = ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
   return states
@@ -122,15 +150,23 @@ function primaryFlightToken(flight: string) {
 }
 
 export default function App() {
-  const [activity, setActivity] = useState<{ date?: string; flights: Flight[]; staff: Staff[] }>({ flights: [], staff: [] })
+  const [activity, setActivity] = useState<{ date?: string; flights: Flight[]; staff: Staff[]; suggestedAssignments?: Assignments }>({ flights: [], staff: [] })
+  const [stationCode, setStationCode] = useState('JFK')
   const [live, setLive] = useState<Array<{ callsign: string; reg: string; status: 'airborne' | 'arrived' }>>([])
   const [liveError, setLiveError] = useState('')
+  const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
   const [assignments, setAssignments] = useState<Assignments>(() => {
     try { return JSON.parse(localStorage.getItem('ops-assignments') || '{}') } catch { return {} }
   })
 
   useEffect(() => { localStorage.setItem('ops-assignments', JSON.stringify(assignments)) }, [assignments])
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const station = STATIONS.find((s) => s.code === stationCode) || STATIONS[0]
 
   const mergedFlights = useMemo(() => {
     const base = PLANNED.map((f, i) => ({ ...f, key: `${f.airline}-${f.flight}-${i}`, status: 'scheduled' as const }))
@@ -165,8 +201,8 @@ export default function App() {
 
   const loadLive = async () => {
     setLiveError('')
-    try { setLive(await fetchOpenSkyJfk()) }
-    catch { setLiveError('OpenSky live data limited right now. Schedule still available.') }
+    try { setLive(await fetchOpenSky(station)) }
+    catch { setLiveError('OpenSky live data limited right now (browser CORS/rate limits). Schedule still available.') }
   }
 
   return (
@@ -178,12 +214,30 @@ export default function App() {
 
       <section className="panel uploads">
         <label>
+          Station
+          <select value={stationCode} onChange={(e) => setStationCode(e.target.value)}>
+            {STATIONS.map((s) => <option key={s.code} value={s.code}>{s.code} — {s.name}</option>)}
+          </select>
+        </label>
+        <label>
           Daily Activity CSV
           <input type="file" accept=".csv" onChange={async (e) => {
             const f = e.target.files?.[0]
             if (!f) return
             const rows = parseCsv(await f.text())
-            setActivity(parseDailyActivity(rows))
+            const parsed = parseDailyActivity(rows)
+            setActivity(parsed)
+            const suggestions = parsed.suggestedAssignments || {}
+            if (Object.keys(suggestions).length) {
+              setAssignments((prev) => {
+                const next = { ...prev }
+                mergedFlights.forEach((fl) => {
+                  const key = `BA${fl.flight.replace(/[^0-9/]/g, '')}`
+                  if (suggestions[key]) next[fl.key] = { ...next[fl.key], ...suggestions[key] }
+                })
+                return next
+              })
+            }
           }} />
         </label>
         <label>
@@ -195,6 +249,8 @@ export default function App() {
 
       <section className="panel stats">
         <span><b>Date:</b> {activity.date || new Date().toLocaleDateString()}</span>
+        <span><b>Local:</b> {clock.toLocaleTimeString()}</span>
+        <span><b>UTC:</b> {clock.toUTCString().split(' ')[4]}Z</span>
         <span><b>Flights:</b> {mergedFlights.length}</span>
         <span><b>Roster pool:</b> {staffRoster.length}</span>
       </section>
@@ -242,6 +298,21 @@ export default function App() {
 
       <section className="panel">
         <h2>Station Flight Gantt (24h)</h2>
+        <div className="scale">
+          {Array.from({ length: 25 }).map((_, i) => <span key={i}>{String(i % 24).padStart(2, '0')}:00</span>)}
+        </div>
+        <div className="busyOverlay">
+          {Array.from({ length: 24 }).map((_, h) => {
+            const c = mergedFlights.filter((f) => {
+              const s = toMinutes(f.eta) ?? 0
+              let e = toMinutes(f.std) ?? s + 60
+              if (e < s) e += 24 * 60
+              const hm = h * 60
+              return hm >= s && hm < e
+            }).length
+            return <div key={h} style={{ opacity: Math.min(c / 6, 0.65) }} title={`${c} flights around ${String(h).padStart(2, '0')}:00`} />
+          })}
+        </div>
         <div className="gantt">
           {mergedFlights.map((f) => {
             const start = toMinutes(f.eta) ?? 0
