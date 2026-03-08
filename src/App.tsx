@@ -626,21 +626,6 @@ export default function App() {
         </div>
       </section>
 
-      <section className="panel stationUsers">
-        <div>
-          <h3>{stationCode} Certifiers ({certifierOptions.length})</h3>
-          <div className="chipWrap">
-            {certifierOptions.map((u) => <span key={`cu-${u}`} className="chip">{u}</span>)}
-          </div>
-        </div>
-        <div>
-          <h3>{stationCode} Mechanics ({mechanicOptions.length})</h3>
-          <div className="chipWrap">
-            {mechanicOptions.map((u) => <span key={`mu-${u}`} className="chip">{u}</span>)}
-          </div>
-        </div>
-      </section>
-
       <section className="panel stats">
         <span><b>Date:</b> {activity.date || new Date().toLocaleDateString()}</span>
         <span><b>Local:</b> {clock.toLocaleTimeString()}</span>
