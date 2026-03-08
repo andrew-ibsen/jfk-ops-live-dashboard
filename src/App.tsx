@@ -16,6 +16,7 @@ type Flight = {
 }
 
 type Assignments = Record<string, { certifier?: string; mechanic?: string }>
+type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: number }>
 
 type Station = { code: string; name: string; bbox: { lamin: number; lomin: number; lamax: number; lomax: number } }
 
@@ -288,6 +289,9 @@ export default function App() {
   const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: LiveStage }>>([])
   const liveCacheRef = useRef<Map<string, { callsign: string; hex: string; status: LiveStage; seenAt: number }>>(new Map())
   const [enrichment, setEnrichment] = useState<Array<{ flight: string; reg: string; type: string; status?: string }>>([])
+  const [enrichmentCache, setEnrichmentCache] = useState<EnrichmentCache>(() => {
+    try { return JSON.parse(localStorage.getItem('ops-enrichment-cache') || '{}') } catch { return {} }
+  })
   const [liveError, setLiveError] = useState('')
   const [feedHealth, setFeedHealth] = useState<any>(null)
   const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null)
@@ -301,6 +305,7 @@ export default function App() {
   const enrichmentNextAtRef = useRef<number>(0)
 
   useEffect(() => { localStorage.setItem('ops-assignments', JSON.stringify(assignments)) }, [assignments])
+  useEffect(() => { localStorage.setItem('ops-enrichment-cache', JSON.stringify(enrichmentCache)) }, [enrichmentCache])
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000)
     return () => clearInterval(t)
@@ -338,8 +343,16 @@ export default function App() {
       }
     })
 
+    // Free-source resilience: apply cached reg/type when live enrichment misses.
+    Array.from(map.values()).forEach((f) => {
+      const c = enrichmentCache[f.flight]
+      if (!c) return
+      if (!f.reg && c.reg) f.reg = c.reg
+      if (!f.aircraftType && c.type) f.aircraftType = c.type
+    })
+
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
-  }, [activity.flights, live, enrichment])
+  }, [activity.flights, live, enrichment, enrichmentCache])
 
   const staffRoster = useMemo(() => {
     const uploaded = activity.staff.map((s) => s.name)
@@ -393,7 +406,19 @@ export default function App() {
         }
         setLive(Array.from(liveCacheRef.current.values()).map(({ seenAt, ...rest }) => rest))
       }
-      if (en.rows.length) setEnrichment(en.rows)
+      if (en.rows.length) {
+        setEnrichment(en.rows)
+        const ts = Date.now()
+        setEnrichmentCache((prev) => {
+          const next = { ...prev }
+          en.rows.forEach((r: any) => {
+            if (!r?.flight) return
+            const cur = next[r.flight] || { updatedAt: ts }
+            next[r.flight] = { reg: r.reg || cur.reg, type: r.type || cur.type, updatedAt: ts }
+          })
+          return next
+        })
+      }
 
       if (shouldEnrich) {
         const reason = String(en.meta?.reason || '')
@@ -476,6 +501,7 @@ export default function App() {
         <span><b>ADS-B:</b> auto refresh every 30s{lastLiveUpdate ? ` (last ${lastLiveUpdate.toLocaleTimeString()})` : ''}</span>
         <span><b>OpenSky:</b> <span className={`feed ${feedHealth?.opensky?.ok ? 'ok' : 'bad'}`}>{feedHealth?.opensky?.ok ? `OK (${feedHealth?.opensky?.rows})` : `Issue (${feedHealth?.opensky?.reason || 'n/a'})`}</span></span>
         <span><b>Enrichment (≤3/day):</b> <span className={`feed ${feedHealth?.enrichment?.ok ? 'ok' : 'bad'}`}>{feedHealth?.enrichment?.ok ? `OK (${feedHealth?.enrichment?.rows})` : `Issue (${feedHealth?.enrichment?.reason || 'n/a'})`}</span></span>
+        <span><b>Cache:</b> {Object.keys(enrichmentCache).length} flight mappings</span>
       </section>
 
       {liveError && <section className="panel warn">{liveError}</section>}
