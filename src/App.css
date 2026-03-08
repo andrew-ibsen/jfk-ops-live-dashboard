@@ -41,6 +41,7 @@ th,td{padding:9px;border-bottom:1px solid #1e3f80;text-align:left}
 .status.landing{background:#7a5a1a;border-color:#e5b84d}
 .status.departed{background:#1f4f7a;border-color:#6fb3ea}
 .status.taxi{background:#5a2f79;border-color:#bf83e7}
+.status.cancelled{background:#7a1f24;border-color:#ff7f86;color:#ffd9dd}
 .scaleWrap,.overlayWrap{display:grid;grid-template-columns:220px 1fr;gap:8px;align-items:center}
 .scaleLabelPad{display:block}
 .scale{display:grid;grid-template-columns:repeat(25,1fr);gap:2px;font-size:.68rem;opacity:.85;margin-bottom:6px}

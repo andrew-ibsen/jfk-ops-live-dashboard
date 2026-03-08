@@ -4,7 +4,7 @@ import { STAFF_BY_STATION } from './stationStaff'
 import { STATION_AIRLINES } from './stationAirlines'
 
 type Staff = { name: string; role: 'Mechanic' | 'Certifier'; shift?: string; absence?: string }
-type LiveStage = 'scheduled' | 'airborne' | 'arrived' | 'landing' | 'departed' | 'taxi'
+type LiveStage = 'scheduled' | 'airborne' | 'arrived' | 'landing' | 'departed' | 'taxi' | 'cancelled'
 
 type Flight = {
   key: string
@@ -337,6 +337,7 @@ function normalizeLiveToken(callsign: string) {
 function mapEnrichmentStatus(s?: string): LiveStage | undefined {
   const v = String(s || '').toLowerCase()
   if (!v) return undefined
+  if (v.includes('cancel')) return 'cancelled'
   if (v.includes('land') || v.includes('arriv')) return 'arrived'
   if (v.includes('depart') || v.includes('takeoff')) return 'departed'
   if (v.includes('active') || v.includes('en-route') || v.includes('enroute') || v.includes('air')) return 'airborne'
@@ -531,6 +532,10 @@ export default function App() {
         }
       }
 
+      const noteKey = `${stationCode}|${f.flight}`
+      const noteTxt = (manualNotes[noteKey] || '').toLowerCase()
+      if (noteTxt.includes('cancel')) f.status = 'cancelled'
+
       // Terminal defaults from ops rules (can be overwritten by data feed/manual updates).
       if (!f.terminal) {
         const t = defaultTerminalForAirline(f.airline)
@@ -548,7 +553,7 @@ export default function App() {
     })
 
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
-  }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache, manualRegOverrides, manualTypeOverrides, manualGateOverrides, stationCode])
+  }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache, manualRegOverrides, manualTypeOverrides, manualGateOverrides, manualNotes, stationCode])
 
   const stationStaffBase = STAFF_BY_STATION[stationCode] || { mechanics: [], certifiers: [] }
   const stationStaff = useMemo(() => {
