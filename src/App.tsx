@@ -23,6 +23,7 @@ type Assignments = Record<string, { certifier?: string; mechanic?: string; stati
 type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: number }>
 type HexRegCache = Record<string, { reg: string; updatedAt: number }>
 type ManualRegOverrides = Record<string, string>
+type ManualGateOverrides = Record<string, string>
 type ManualNotes = Record<string, string>
 
 type WeatherSnapshot = {
@@ -372,6 +373,9 @@ export default function App() {
   const [manualRegOverrides, setManualRegOverrides] = useState<ManualRegOverrides>(() => {
     try { return JSON.parse(localStorage.getItem('ops-manual-reg-overrides') || '{}') } catch { return {} }
   })
+  const [manualGateOverrides, setManualGateOverrides] = useState<ManualGateOverrides>(() => {
+    try { return JSON.parse(localStorage.getItem('ops-manual-gate-overrides') || '{}') } catch { return {} }
+  })
   const [manualNotes, setManualNotes] = useState<ManualNotes>(() => {
     try { return JSON.parse(localStorage.getItem('ops-manual-notes') || '{}') } catch { return {} }
   })
@@ -392,6 +396,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('ops-enrichment-cache', JSON.stringify(enrichmentCache)) }, [enrichmentCache])
   useEffect(() => { localStorage.setItem('ops-hex-reg-cache', JSON.stringify(hexRegCache)) }, [hexRegCache])
   useEffect(() => { localStorage.setItem('ops-manual-reg-overrides', JSON.stringify(manualRegOverrides)) }, [manualRegOverrides])
+  useEffect(() => { localStorage.setItem('ops-manual-gate-overrides', JSON.stringify(manualGateOverrides)) }, [manualGateOverrides])
   useEffect(() => { localStorage.setItem('ops-manual-notes', JSON.stringify(manualNotes)) }, [manualNotes])
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000)
@@ -462,6 +467,7 @@ export default function App() {
       }
       const manualKey = `${stationCode}|${f.flight}`
       if (manualRegOverrides[manualKey]) f.reg = manualRegOverrides[manualKey]
+      if (manualGateOverrides[manualKey]) f.gate = manualGateOverrides[manualKey]
 
       // Terminal defaults from ops rules (can be overwritten by data feed/manual updates).
       if (!f.terminal) {
@@ -471,7 +477,7 @@ export default function App() {
     })
 
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
-  }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache, manualRegOverrides, stationCode])
+  }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache, manualRegOverrides, manualGateOverrides, stationCode])
 
   const stationStaff = STAFF_BY_STATION[stationCode] || { mechanics: [], certifiers: [] }
 
@@ -515,6 +521,19 @@ export default function App() {
     setManualNotes((prev) => {
       const next = { ...prev }
       const cleaned = val.trim()
+      if (!cleaned) delete next[key]
+      else next[key] = cleaned
+      return next
+    })
+  }
+
+  const editGate = (flight: string, current?: string) => {
+    const key = `${stationCode}|${flight}`
+    const val = window.prompt(`Set gate for ${flight}`, current || '')
+    if (val === null) return
+    const cleaned = val.trim().toUpperCase()
+    setManualGateOverrides((prev) => {
+      const next = { ...prev }
       if (!cleaned) delete next[key]
       else next[key] = cleaned
       return next
@@ -739,7 +758,7 @@ export default function App() {
                   <td><span>{f.reg || '-'}</span> <button className="miniBtn" onClick={() => editReg(f.flight, f.reg)} title="Set manual registration">✎</button></td>
                   <td>{f.aircraftType || '-'}</td>
                   <td>{terminalNumber(f.terminal) || f.terminal || '-'}</td>
-                  <td>{f.gate || '-'}</td>
+                  <td><span>{f.gate || '-'}</span> <button className="miniBtn" onClick={() => editGate(f.flight, f.gate)} title="Set gate">✎</button></td>
                   <td>{normalizeTime(f.eta) || '-'}</td>
                   <td>{normalizeTime(f.std) || '-'}</td>
                   <td><span className={`status ${f.status || 'scheduled'}`}>{f.status || 'scheduled'}</span></td>
