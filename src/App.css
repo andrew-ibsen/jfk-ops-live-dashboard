@@ -5,6 +5,7 @@ header h1{margin:0;font-size:2rem;line-height:1.1}.panel{background:#0b1f49;bord
 .topHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:nowrap}
 .topHeader p{margin:4px 0 0 0;font-size:.92rem;opacity:.9}
 .weatherBox{min-width:200px;background:rgba(14,40,93,.85);border:1px solid #3d6dcc;border-radius:10px;padding:8px;display:grid;gap:2px}
+.inlineWeather{height:100%}
 .weatherBox h3{margin:0 0 4px 0;font-size:.95rem}
 .weatherBox small{opacity:.9}
 .wxNow{display:flex;align-items:center;gap:8px}
@@ -12,7 +13,7 @@ header h1{margin:0;font-size:2rem;line-height:1.1}.panel{background:#0b1f49;bord
 .ganttHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .ganttControls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .ganttClocks{display:flex;gap:12px;font-size:.85rem;color:#b9cdf7}
-.uploads{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:8px;align-items:end}
+.uploads{display:grid;grid-template-columns:1fr 1.5fr 1fr 0.9fr;gap:8px;align-items:end}
 .uploads label{display:grid;gap:4px;font-size:.85rem}
 input,select,button,textarea{background:#102a61;color:#fff;border:1px solid #3a67bf;border-radius:8px;padding:6px}
 textarea{min-height:64px}

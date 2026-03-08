@@ -514,20 +514,6 @@ export default function App() {
           <h1>British Airways Line Maintenance Operational Dashboard — {stationCode}</h1>
           <p>Single-file workflow: upload Daily Activity CSV, assign crews, visualize overlaps.</p>
         </div>
-        <div className="weatherBox">
-          <h3>{stationCode} Weather</h3>
-          <div className="wxNow">
-            <span className="wxIcon" title={weather?.nowDesc || 'Weather'}>{weatherEmoji(weather?.nowDesc)}</span>
-            <div>
-              <div>Now: {weather ? `${weather.tempC}°C` : '—'}</div>
-              <small>{weather?.nowDesc || '—'}</small>
-            </div>
-          </div>
-          <div>Precip: {weather ? `${weather.precipMm} mm` : '—'}</div>
-          <small>AM: {weather?.morning || '—'}</small>
-          <small>PM: {weather?.afternoon || '—'}</small>
-          <small>EVE: {weather?.evening || '—'}</small>
-        </div>
       </header>
 
       <section className="panel uploads">
@@ -568,6 +554,20 @@ export default function App() {
           Manual Staff Add (one per line)
           <textarea rows={4} value={manualStaff} onChange={(e) => setManualStaff(e.target.value)} placeholder="Add extra certifiers/mechanics..." />
         </label>
+        <div className="weatherBox inlineWeather">
+          <h3>{stationCode} Weather</h3>
+          <div className="wxNow">
+            <span className="wxIcon" title={weather?.nowDesc || 'Weather'}>{weatherEmoji(weather?.nowDesc)}</span>
+            <div>
+              <div>Now: {weather ? `${weather.tempC}°C` : '—'}</div>
+              <small>{weather?.nowDesc || '—'}</small>
+            </div>
+          </div>
+          <div>Precip: {weather ? `${weather.precipMm} mm` : '—'}</div>
+          <small>AM: {weather?.morning || '—'}</small>
+          <small>PM: {weather?.afternoon || '—'}</small>
+          <small>EVE: {weather?.evening || '—'}</small>
+        </div>
       </section>
 
       <section className="panel stats">
