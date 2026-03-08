@@ -237,21 +237,45 @@ function primaryFlightToken(flight: string) {
   return (flight.split('/')[0] || '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
 }
 
+async function fetchEnrichment(stationCode: string, key: string) {
+  if (!key) return [] as any[]
+  const base = `https://api.aviationstack.com/v1/flights?access_key=${encodeURIComponent(key)}&arr_iata=${encodeURIComponent(stationCode)}&limit=100`
+  const urls = [base, `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`]
+  for (const url of urls) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) continue
+      const json = await res.json()
+      const rows = (json.data || []) as any[]
+      if (!rows.length) continue
+      return rows.map((r) => ({
+        flight: String(r?.flight?.iata || '').toUpperCase(),
+        reg: String(r?.aircraft?.registration || ''),
+        type: String(r?.aircraft?.iata || r?.aircraft?.icao || ''),
+      }))
+    } catch {}
+  }
+  return [] as any[]
+}
+
 export default function App() {
   const [activity, setActivity] = useState<{ date?: string; flights: Flight[]; staff: Staff[]; suggestedAssignments?: Assignments }>({ flights: [], staff: [] })
   const [stationCode, setStationCode] = useState('JFK')
   const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: LiveStage }>>([])
+  const [enrichment, setEnrichment] = useState<Array<{ flight: string; reg: string; type: string }>>([])
   const [liveError, setLiveError] = useState('')
   const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null)
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
   const [dailyFileName, setDailyFileName] = useState('No file selected')
+  const [enrichKey, setEnrichKey] = useState(() => localStorage.getItem('aviationstack-key') || '')
   const [assignments, setAssignments] = useState<Assignments>(() => {
     try { return JSON.parse(localStorage.getItem('ops-assignments') || '{}') } catch { return {} }
   })
   const [ganttUserFilter, setGanttUserFilter] = useState('')
 
   useEffect(() => { localStorage.setItem('ops-assignments', JSON.stringify(assignments)) }, [assignments])
+  useEffect(() => { localStorage.setItem('aviationstack-key', enrichKey) }, [enrichKey])
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000)
     return () => clearInterval(t)
@@ -272,14 +296,21 @@ export default function App() {
       const match = Array.from(byToken.entries()).find(([token]) => lf.callsign.includes(token.replace(/^[A-Z]+/, '')) || lf.callsign.includes(token))
       if (match) {
         const hit = match[1]
-        // OpenSky state feed returns ICAO24 hex, not tail registration.
-        // Keep registration from schedule/source file; only update live status here.
         hit.status = lf.status
       }
     })
 
+    enrichment.forEach((e) => {
+      const token = primaryFlightToken(e.flight)
+      const hit = byToken.get(token)
+      if (hit) {
+        if (e.reg) hit.reg = e.reg
+        if (e.type) hit.aircraftType = e.type
+      }
+    })
+
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
-  }, [activity.flights, live])
+  }, [activity.flights, live, enrichment])
 
   const staffRoster = useMemo(() => {
     const uploaded = activity.staff.map((s) => s.name)
@@ -314,10 +345,16 @@ export default function App() {
   const loadLive = async () => {
     setLiveError('')
     try {
-      setLive(await fetchOpenSky(station))
+      const [liveRows, enrichRows] = await Promise.all([
+        fetchOpenSky(station),
+        fetchEnrichment(station.code, enrichKey)
+      ])
+      setLive(liveRows)
+      setEnrichment(enrichRows)
       setLastLiveUpdate(new Date())
+      if (!liveRows.length) setLiveError('No live rows from OpenSky right now. Showing schedule + enrichment data.')
     }
-    catch { setLiveError('OpenSky live data limited right now (browser CORS/rate limits). Schedule still available.') }
+    catch { setLiveError('Live data limited right now (CORS/rate limits). Schedule still available.') }
   }
 
   useEffect(() => {
@@ -370,6 +407,10 @@ export default function App() {
         <label>
           Manual Staff Add (one per line)
           <textarea rows={4} value={manualStaff} onChange={(e) => setManualStaff(e.target.value)} placeholder="Add extra certifiers/mechanics..." />
+        </label>
+        <label>
+          Enrichment API Key (optional, Aviationstack free)
+          <input value={enrichKey} onChange={(e) => setEnrichKey(e.target.value)} placeholder="paste key to improve Reg/Type" />
         </label>
         <button onClick={loadLive}>Refresh ADS-B (OpenSky)</button>
       </section>
