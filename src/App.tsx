@@ -23,6 +23,7 @@ type Assignments = Record<string, { certifier?: string; mechanic?: string; stati
 type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: number }>
 type HexRegCache = Record<string, { reg: string; updatedAt: number }>
 type ManualRegOverrides = Record<string, string>
+type ManualNotes = Record<string, string>
 
 type WeatherSnapshot = {
   tempC: string
@@ -356,6 +357,9 @@ export default function App() {
   const [manualRegOverrides, setManualRegOverrides] = useState<ManualRegOverrides>(() => {
     try { return JSON.parse(localStorage.getItem('ops-manual-reg-overrides') || '{}') } catch { return {} }
   })
+  const [manualNotes, setManualNotes] = useState<ManualNotes>(() => {
+    try { return JSON.parse(localStorage.getItem('ops-manual-notes') || '{}') } catch { return {} }
+  })
   const [liveError, setLiveError] = useState('')
   const [feedHealth, setFeedHealth] = useState<any>(null)
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null)
@@ -373,6 +377,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('ops-enrichment-cache', JSON.stringify(enrichmentCache)) }, [enrichmentCache])
   useEffect(() => { localStorage.setItem('ops-hex-reg-cache', JSON.stringify(hexRegCache)) }, [hexRegCache])
   useEffect(() => { localStorage.setItem('ops-manual-reg-overrides', JSON.stringify(manualRegOverrides)) }, [manualRegOverrides])
+  useEffect(() => { localStorage.setItem('ops-manual-notes', JSON.stringify(manualNotes)) }, [manualNotes])
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000)
     return () => clearInterval(t)
@@ -476,6 +481,19 @@ export default function App() {
     const cleaned = val.trim().toUpperCase()
     setManualRegOverrides((prev) => {
       const next = { ...prev }
+      if (!cleaned) delete next[key]
+      else next[key] = cleaned
+      return next
+    })
+  }
+
+  const editNote = (flight: string) => {
+    const key = `${stationCode}|${flight}`
+    const val = window.prompt(`Add note for ${flight}`, manualNotes[key] || '')
+    if (val === null) return
+    setManualNotes((prev) => {
+      const next = { ...prev }
+      const cleaned = val.trim()
       if (!cleaned) delete next[key]
       else next[key] = cleaned
       return next
@@ -687,7 +705,7 @@ export default function App() {
         <table>
           <thead>
             <tr>
-              <th>Airline</th><th>Flight</th><th>A/C Reg</th><th>A/C Type</th><th>Terminal</th><th>Gate</th><th>ETA</th><th>STD</th><th>Status</th><th>Certifier</th><th>Mechanic</th>
+              <th>Airline</th><th>Flight</th><th>A/C Reg</th><th>A/C Type</th><th>Terminal</th><th>Gate</th><th>ETA</th><th>STD</th><th>Status</th><th>Certifier</th><th>Mechanic</th><th>Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -715,6 +733,10 @@ export default function App() {
                       <option value="">Assign…</option>
                       {mechanicOptions.map((s) => <option key={`m-${s}`} value={s}>{s}</option>)}
                     </select>
+                  </td>
+                  <td>
+                    <span>{manualNotes[`${stationCode}|${f.flight}`] || '-'}</span>
+                    <button className="miniBtn" onClick={() => editNote(f.flight)} title="Add/edit note">✎</button>
                   </td>
                 </tr>
               )
