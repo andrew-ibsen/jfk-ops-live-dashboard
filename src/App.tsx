@@ -230,6 +230,36 @@ function primaryFlightToken(flight: string) {
   return (flight.split('/')[0] || '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
 }
 
+function flightTokens(flight: string) {
+  // BA117/176 => [BA117, BA176]
+  const m = flight.toUpperCase().match(/^([A-Z]{1,3})(\d{1,4})\/(\d{1,4})$/)
+  if (!m) return [primaryFlightToken(flight)]
+  const p = m[1]
+  return [`${p}${Number(m[2])}`, `${p}${Number(m[3])}`]
+}
+
+function normalizeLiveToken(callsign: string) {
+  const raw = String(callsign || '').toUpperCase().replace(/\s+/g, '')
+  const m = raw.match(/^([A-Z]{2,3})(0*\d{1,4})/)
+  if (!m) return ''
+  const prefix = m[1]
+  const num = Number(m[2])
+  const map: Record<string, string> = {
+    BAW: 'BA', BA: 'BA',
+    EIN: 'EI', EI: 'EI',
+    IBE: 'IB', IB: 'IB',
+    QFA: 'QF', QF: 'QF',
+    ANZ: 'NZ', NZ: 'NZ',
+    NAX: 'NO', NO: 'NO',
+    JAL: 'JL', JL: 'JL',
+    ANA: 'NH', NH: 'NH',
+    FIN: 'AY', AY: 'AY',
+    LYX: 'LL', LL: 'LL'
+  }
+  const p = map[prefix] || prefix.slice(0, 2)
+  return `${p}${num}`
+}
+
 async function fetchEnrichment(stationCode: string) {
   const res = await fetch(`/api/enrichment?station=${encodeURIComponent(stationCode)}`)
   const json = await res.json().catch(() => ({}))
@@ -272,18 +302,18 @@ export default function App() {
     activity.flights.forEach((f) => map.set(f.key, { ...f, aircraftType: map.get(f.key)?.aircraftType }))
 
     const byToken = new Map<string, Flight>()
-    Array.from(map.values()).forEach((f) => byToken.set(primaryFlightToken(f.flight), f))
+    Array.from(map.values()).forEach((f) => {
+      flightTokens(f.flight).forEach((t) => byToken.set(t, f))
+    })
 
     live.forEach((lf) => {
-      const match = Array.from(byToken.entries()).find(([token]) => lf.callsign.includes(token.replace(/^[A-Z]+/, '')) || lf.callsign.includes(token))
-      if (match) {
-        const hit = match[1]
-        hit.status = lf.status
-      }
+      const token = normalizeLiveToken(lf.callsign)
+      const hit = byToken.get(token)
+      if (hit) hit.status = lf.status
     })
 
     enrichment.forEach((e) => {
-      const token = primaryFlightToken(e.flight)
+      const token = normalizeLiveToken(e.flight) || primaryFlightToken(e.flight)
       const hit = byToken.get(token)
       if (hit) {
         if (e.reg) hit.reg = e.reg
