@@ -34,6 +34,7 @@ Set these env vars locally and in Vercel Project Settings → Environment Variab
 ```env
 DASHBOARD_PASSWORD_SECRET=long_random_secret
 PASSWORD_BOT_TOKEN=random_admin_token
+DASHBOARD_MASTER_PASSWORD=BAENGJFK
 ```
 
 Daily password format is derived server-side as:
