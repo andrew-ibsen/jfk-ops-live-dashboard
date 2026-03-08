@@ -102,6 +102,47 @@ export default defineConfig(({ mode }) => {
             }
           })
 
+          server.middlewares.use('/api/reglookup', async (req, res) => {
+            try {
+              const u = new URL(req.url || '', 'http://localhost')
+              const hex = String(u.searchParams.get('hex') || '').toLowerCase().trim()
+              if (!hex) {
+                res.statusCode = 400
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ ok: false, reason: 'missing_hex' }))
+                return
+              }
+
+              const candidates = [
+                `https://opensky-network.org/api/metadata/aircraft/icao/${encodeURIComponent(hex)}`,
+                `https://hexdb.io/api/v1/aircraft/${encodeURIComponent(hex)}`
+              ]
+
+              for (const url of candidates) {
+                try {
+                  const r = await fetchWithTimeout(url)
+                  if (!r.ok) continue
+                  const j: any = await r.json().catch(() => null)
+                  const registration = j?.registration || j?.reg || j?.tail || j?.aircraft?.registration || ''
+                  if (registration) {
+                    res.statusCode = 200
+                    res.setHeader('Content-Type', 'application/json')
+                    res.end(JSON.stringify({ ok: true, hex, registration }))
+                    return
+                  }
+                } catch {}
+              }
+
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ ok: false, hex, reason: 'not_found' }))
+            } catch (e: any) {
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ ok: false, reason: e?.message || 'reglookup_failed' }))
+            }
+          })
+
           server.middlewares.use('/api/health', (_req, res) => {
             res.statusCode = 200
             res.setHeader('Content-Type', 'application/json')

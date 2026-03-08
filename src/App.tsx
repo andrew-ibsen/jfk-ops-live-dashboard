@@ -17,6 +17,7 @@ type Flight = {
 
 type Assignments = Record<string, { certifier?: string; mechanic?: string }>
 type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: number }>
+type HexRegCache = Record<string, { reg: string; updatedAt: number }>
 
 type WeatherSnapshot = {
   tempC: string
@@ -321,6 +322,13 @@ function weatherEmoji(desc?: string) {
   return '🌤️'
 }
 
+async function fetchRegByHex(hex: string) {
+  const res = await fetch(`/api/reglookup?hex=${encodeURIComponent(hex)}`)
+  if (!res.ok) return ''
+  const j = await res.json().catch(() => ({} as any))
+  return String(j?.registration || '')
+}
+
 async function fetchEnrichment(stationCode: string) {
   const res = await fetch(`/api/enrichment?station=${encodeURIComponent(stationCode)}`)
   const json = await res.json().catch(() => ({}))
@@ -342,6 +350,9 @@ export default function App() {
   const [enrichmentCache, setEnrichmentCache] = useState<EnrichmentCache>(() => {
     try { return JSON.parse(localStorage.getItem('ops-enrichment-cache') || '{}') } catch { return {} }
   })
+  const [hexRegCache, setHexRegCache] = useState<HexRegCache>(() => {
+    try { return JSON.parse(localStorage.getItem('ops-hex-reg-cache') || '{}') } catch { return {} }
+  })
   const [liveError, setLiveError] = useState('')
   const [feedHealth, setFeedHealth] = useState<any>(null)
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null)
@@ -357,6 +368,7 @@ export default function App() {
 
   useEffect(() => { localStorage.setItem('ops-assignments', JSON.stringify(assignments)) }, [assignments])
   useEffect(() => { localStorage.setItem('ops-enrichment-cache', JSON.stringify(enrichmentCache)) }, [enrichmentCache])
+  useEffect(() => { localStorage.setItem('ops-hex-reg-cache', JSON.stringify(hexRegCache)) }, [hexRegCache])
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000)
     return () => clearInterval(t)
@@ -378,7 +390,11 @@ export default function App() {
     live.forEach((lf) => {
       const token = normalizeLiveToken(lf.callsign)
       const hit = byToken.get(token)
-      if (hit) hit.status = lf.status
+      if (hit) {
+        hit.status = lf.status
+        const hexReg = hexRegCache[lf.hex]?.reg
+        if (!hit.reg && hexReg) hit.reg = hexReg
+      }
     })
 
     enrichment.forEach((e) => {
@@ -403,7 +419,7 @@ export default function App() {
     })
 
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
-  }, [activity.flights, live, enrichment, enrichmentCache])
+  }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache])
 
   const staffRoster = useMemo(() => {
     const uploaded = activity.staff.map((s) => s.name)
@@ -455,7 +471,25 @@ export default function App() {
         for (const [k, v] of liveCacheRef.current.entries()) {
           if (nowTs - v.seenAt > 6 * 60 * 60_000) liveCacheRef.current.delete(k)
         }
-        setLive(Array.from(liveCacheRef.current.values()).map(({ seenAt, ...rest }) => rest))
+        const liveRows = Array.from(liveCacheRef.current.values()).map(({ seenAt, ...rest }) => rest)
+        setLive(liveRows)
+
+        // Free-source add-on: resolve a few missing ICAO24->registration mappings per cycle.
+        const unknownHex = Array.from(new Set(liveRows.map((r: any) => r.hex).filter(Boolean)))
+          .filter((hex) => !hexRegCache[hex])
+          .slice(0, 4)
+        if (unknownHex.length) {
+          const resolved = await Promise.all(unknownHex.map(async (hex) => ({ hex, reg: await fetchRegByHex(hex) })))
+          const hits = resolved.filter((x) => x.reg)
+          if (hits.length) {
+            setHexRegCache((prev) => {
+              const next = { ...prev }
+              const ts = Date.now()
+              hits.forEach((h) => { next[h.hex] = { reg: h.reg, updatedAt: ts } })
+              return next
+            })
+          }
+        }
       }
       if (en.rows.length) {
         setEnrichment(en.rows)
