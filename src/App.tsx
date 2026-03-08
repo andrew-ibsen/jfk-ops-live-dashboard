@@ -907,9 +907,8 @@ export default function App() {
         <span><b>Cache:</b> {Object.keys(enrichmentCache).length} flight mappings</span>
       </section>
 
-      {liveError && <section className="panel warn">{liveError}</section>}
-
       <section className="panel tableWrap">
+        {liveError && <div className="warn warnFloat">{liveError}</div>}
         <h2>Daily Roster</h2>
         <table>
           <thead>
