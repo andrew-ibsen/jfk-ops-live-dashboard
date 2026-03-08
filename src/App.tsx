@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 type Staff = { name: string; role: 'Mechanic' | 'Certifier'; shift?: string; absence?: string }
@@ -286,6 +286,7 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('ops-assignments') || '{}') } catch { return {} }
   })
   const [ganttUserFilter, setGanttUserFilter] = useState('')
+  const enrichmentNextAtRef = useRef<number>(0)
 
   useEffect(() => { localStorage.setItem('ops-assignments', JSON.stringify(assignments)) }, [assignments])
   useEffect(() => {
@@ -357,15 +358,31 @@ export default function App() {
   const loadLive = async () => {
     setLiveError('')
     try {
+      const now = Date.now()
+      const shouldEnrich = now >= enrichmentNextAtRef.current
+
       const [os, en] = await Promise.all([
         fetchOpenSky(station),
-        fetchEnrichment(station.code)
+        shouldEnrich
+          ? fetchEnrichment(station.code)
+          : Promise.resolve({ rows: [], meta: { ok: true, rows: enrichment.length, reason: 'cached' } })
       ])
+
       if (os.rows.length) setLive(os.rows)
       if (en.rows.length) setEnrichment(en.rows)
+
+      if (shouldEnrich) {
+        const reason = String(en.meta?.reason || '')
+        const rateLimited = reason.includes('429')
+        enrichmentNextAtRef.current = now + (rateLimited ? 15 * 60_000 : 5 * 60_000)
+      }
+
       setFeedHealth({ opensky: os.meta, enrichment: en.meta })
       setLastLiveUpdate(new Date())
       if (!os.rows.length) setLiveError('OpenSky returned 0 matching rows this cycle. Using last known snapshot + schedule.')
+      if (String(en.meta?.reason || '').includes('429')) {
+        setLiveError('Enrichment API is rate-limited (429). Using cached reg/type and retrying later.')
+      }
     }
     catch {
       setLiveError('Live data limited right now (CORS/rate limits). Using last known snapshot + schedule.')
