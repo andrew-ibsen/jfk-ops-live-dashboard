@@ -104,14 +104,14 @@ const PLANNED: Omit<Flight, 'key' | 'reg' | 'status'>[] = [
   { airline: 'NH', flight: 'NH159/160', eta: '2250', std: '0150', aircraftType: 'B777' },
   { airline: 'JL', flight: 'JL006/005', eta: '1100', std: '1350', aircraftType: 'A350' },
   { airline: 'JL', flight: 'JL004/003', eta: '1940', std: '0140', aircraftType: 'A350' },
-  { airline: 'BA', flight: 'BA117/176', eta: '1220', std: '2010' },
-  { airline: 'BA', flight: 'BA175/172', eta: '1335', std: '2140' },
-  { airline: 'BA', flight: 'BA173/112', eta: '1520', std: '1915' },
-  { airline: 'BA', flight: 'BA177/174', eta: '1700', std: '1950', aircraftType: 'B787' },
-  { airline: 'BA', flight: 'BA115/116', eta: '1815', std: '2105' },
-  { airline: 'BA', flight: 'BA113/114', eta: '2035', std: '2235', aircraftType: 'B787' },
-  { airline: 'BA', flight: 'BA179/182', eta: '2205', std: '0020' },
-  { airline: 'BA', flight: 'BA183/178', eta: '2305', std: '0905' }
+  { airline: 'BA', flight: 'BA117/176', eta: '1217', std: '2110', gate: '18C' },
+  { airline: 'BA', flight: 'BA175/172', eta: '1334', std: '2140', gate: '18D' },
+  { airline: 'BA', flight: 'BA173/112', eta: '1521', std: '1915', gate: '20' },
+  { airline: 'BA', flight: 'BA177/174', eta: '1658', std: '1950', gate: '16', aircraftType: 'B787' },
+  { airline: 'BA', flight: 'BA115/116', eta: '1810', std: '2105', gate: '14' },
+  { airline: 'BA', flight: 'BA113/114', eta: '2035', std: '2235', gate: '18', aircraftType: 'B787' },
+  { airline: 'BA', flight: 'BA179/182', eta: '2205', std: '0020', gate: '14' },
+  { airline: 'BA', flight: 'BA183/178', eta: '2305', std: '0905', gate: '20' }
 ]
 
 function parseCsv(text: string): string[][] {
