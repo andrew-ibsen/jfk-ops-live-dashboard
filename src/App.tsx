@@ -17,7 +17,7 @@ type Flight = {
   aircraftType?: string
 }
 
-type Assignments = Record<string, { certifier?: string; mechanic?: string }>
+type Assignments = Record<string, { certifier?: string; mechanic?: string; station?: string }>
 type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: number }>
 type HexRegCache = Record<string, { reg: string; updatedAt: number }>
 
@@ -437,17 +437,22 @@ export default function App() {
   }, [activity.staff, stationCode])
 
   const setAssign = (flightKey: string, field: 'certifier' | 'mechanic', value: string) => {
-    setAssignments((prev) => ({ ...prev, [flightKey]: { ...prev[flightKey], [field]: value } }))
+    setAssignments((prev) => ({ ...prev, [flightKey]: { ...prev[flightKey], [field]: value, station: stationCode } }))
   }
 
   const assignedUsers = useMemo(() => {
     const set = new Set<string>()
-    Object.values(assignments).forEach((a) => {
-      if (a.certifier) set.add(a.certifier)
-      if (a.mechanic) set.add(a.mechanic)
-    })
+    Object.values(assignments)
+      .filter((a) => !a.station || a.station === stationCode)
+      .forEach((a) => {
+        if (a.certifier) set.add(a.certifier)
+        if (a.mechanic) set.add(a.mechanic)
+      })
+    // ensure station list is always available even before assignments
+    certifierOptions.forEach((u) => set.add(u))
+    mechanicOptions.forEach((u) => set.add(u))
     return Array.from(set).sort()
-  }, [assignments])
+  }, [assignments, stationCode, certifierOptions, mechanicOptions])
 
   const ganttFlights = useMemo(() => {
     if (!ganttUserFilter) return mergedFlights
@@ -626,6 +631,21 @@ export default function App() {
             <span><b>AM</b> {weather?.morning || '—'}</span>
             <span><b>PM</b> {weather?.afternoon || '—'}</span>
             <span><b>EVE</b> {weather?.evening || '—'}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel stationUsers">
+        <div>
+          <h3>{stationCode} Certifiers ({certifierOptions.length})</h3>
+          <div className="chipWrap">
+            {certifierOptions.map((u) => <span key={`cu-${u}`} className="chip">{u}</span>)}
+          </div>
+        </div>
+        <div>
+          <h3>{stationCode} Mechanics ({mechanicOptions.length})</h3>
+          <div className="chipWrap">
+            {mechanicOptions.map((u) => <span key={`mu-${u}`} className="chip">{u}</span>)}
           </div>
         </div>
       </section>
