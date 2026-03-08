@@ -210,6 +210,7 @@ export default function App() {
   const [stationCode, setStationCode] = useState('JFK')
   const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: 'airborne' | 'arrived' }>>([])
   const [liveError, setLiveError] = useState('')
+  const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null)
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
   const [dailyFileName, setDailyFileName] = useState('No file selected')
@@ -280,9 +281,18 @@ export default function App() {
 
   const loadLive = async () => {
     setLiveError('')
-    try { setLive(await fetchOpenSky(station)) }
+    try {
+      setLive(await fetchOpenSky(station))
+      setLastLiveUpdate(new Date())
+    }
     catch { setLiveError('OpenSky live data limited right now (browser CORS/rate limits). Schedule still available.') }
   }
+
+  useEffect(() => {
+    loadLive()
+    const id = setInterval(loadLive, 30000)
+    return () => clearInterval(id)
+  }, [stationCode])
 
   return (
     <div className="page">
@@ -337,6 +347,7 @@ export default function App() {
         <span><b>UTC:</b> {clock.toUTCString().split(' ')[4]}Z</span>
         <span><b>Flights:</b> {mergedFlights.length}</span>
         <span><b>Roster pool:</b> {staffRoster.length}</span>
+        <span><b>ADS-B:</b> auto refresh every 30s{lastLiveUpdate ? ` (last ${lastLiveUpdate.toLocaleTimeString()})` : ''}</span>
       </section>
 
       {liveError && <section className="panel warn">{liveError}</section>}
