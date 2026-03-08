@@ -283,14 +283,33 @@ function defaultAircraftTypeForFlight(stationCode: string, airline: string) {
   return 'B787/B772/B773/A350'
 }
 
-function normalizeUkRegistration(airline: string, reg?: string) {
+function normalizeRegByAirline(airline: string, reg?: string) {
   const a = airline.toUpperCase()
-  if (a !== 'BA') return reg || ''
+  const prefixMap: Record<string, string> = {
+    BA: 'G',
+    NO: 'G',
+    Z0: 'G',
+    JL: 'JA',
+    NH: 'JA',
+    EI: 'EI',
+    IB: 'EC',
+    LL: 'EC',
+    QF: 'ZH',
+    NZ: 'ZK',
+    AY: 'AY'
+  }
+
+  const p = prefixMap[a]
+  if (!p) return reg || ''
+
   const r = String(reg || '').toUpperCase().replace(/\s+/g, '')
-  if (!r) return 'G-'
-  if (r.startsWith('G-')) return r
-  if (r.startsWith('G') && r.length > 1) return `G-${r.slice(1)}`
-  return `G-${r}`
+  if (!r) return `${p}-`
+  if (r.startsWith(`${p}-`)) return r
+  if (r.startsWith(p) && r.length > p.length) return `${p}-${r.slice(p.length).replace(/^-+/, '')}`
+
+  const suffixFromHyphen = r.includes('-') ? r.split('-').slice(1).join('') : ''
+  const suffix = suffixFromHyphen || r.replace(/^[A-Z]+/, '')
+  return suffix ? `${p}-${suffix}` : `${p}-`
 }
 
 function normalizeLiveToken(callsign: string) {
@@ -524,8 +543,8 @@ export default function App() {
         if (ty) f.aircraftType = ty
       }
 
-      // UK registration prefix consistency rule from ops guidance.
-      f.reg = normalizeUkRegistration(f.airline, f.reg)
+      // Airline registration prefix normalization rules from ops guidance.
+      f.reg = normalizeRegByAirline(f.airline, f.reg)
     })
 
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
