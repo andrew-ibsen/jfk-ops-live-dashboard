@@ -626,7 +626,7 @@ export default function App() {
         <table>
           <thead>
             <tr>
-              <th>Airline</th><th>Flight</th><th>A/C Reg (ADSB)</th><th>A/C Type</th><th>ETA</th><th>STD</th><th>Status</th><th>Certifier</th><th>Mechanic</th>
+              <th>Airline</th><th>Flight</th><th>A/C Reg</th><th>A/C Type</th><th>ETA</th><th>STD</th><th>Status</th><th>Certifier</th><th>Mechanic</th>
             </tr>
           </thead>
           <tbody>
