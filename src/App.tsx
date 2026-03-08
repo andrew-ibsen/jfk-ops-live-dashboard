@@ -936,11 +936,11 @@ export default function App() {
             const tooltip = `${f.airline} ${f.flight} | ARR ${normalizeTime(f.eta) || '--:--'} | DEP ${normalizeTime(f.std) || '--:--'} | TYPE ${f.aircraftType || 'TBD'} | REG ${f.reg || '-'}`
             return (
               <div key={`g-${f.key}`} className="gRow">
-                <span>{f.airline} {f.flight}</span>
+                <span>{f.airline} {f.flight} <small className="gType">{f.aircraftType || 'TBD'}</small></span>
                 <div className="gTrack">
                   {segs.map((s, i) => (
                     <div key={i} className="gBar" title={tooltip} style={{ left: `${s.left}%`, width: `${s.width}%` }}>
-                      {i === 0 && s.width > 10 && <span className="gBarLabel">{f.aircraftType || 'TBD'}</span>}
+                      {i === 0 && <span className="gBarLabel">{f.aircraftType || 'TBD'}</span>}
                     </div>
                   ))}
                   <div className="nowLine" style={{ left: `${nowPct}%` }} />

@@ -48,6 +48,7 @@ th,td{padding:9px;border-bottom:1px solid #1e3f80;text-align:left}
 .busyOverlay{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;height:24px;margin-bottom:8px;position:relative}
 .busyOverlay>div{background:#ffdf6b;border-radius:3px;opacity:.1}
 .gantt{display:grid;gap:8px}.gRow{display:grid;grid-template-columns:220px 1fr;gap:8px;align-items:center}
+.gType{opacity:.75;margin-left:4px;font-size:.72rem}
 .gTrack{position:relative;height:16px;background:#102a61;border-radius:999px;border:1px solid #2957ae;overflow:hidden}
 .gBar{position:absolute;height:100%;background:linear-gradient(90deg,#5ba2ff,#9bd0ff);border-radius:999px;display:flex;align-items:center;padding:0 6px;overflow:hidden}
 .gBar:hover{filter:brightness(1.08)}
