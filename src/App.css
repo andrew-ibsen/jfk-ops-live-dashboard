@@ -34,6 +34,7 @@ button{cursor:pointer;font-weight:600}.stats{display:flex;flex-wrap:wrap;gap:10p
 .warn{border-color:#d4a431;background:#3d2f0f}.tableWrap{overflow:auto}
 table{width:100%;min-width:1200px;border-collapse:collapse}
 th,td{padding:9px;border-bottom:1px solid #1e3f80;text-align:left}
+.miniBtn{padding:2px 6px;font-size:.72rem;line-height:1;margin-left:6px;border-radius:6px}
 .status{padding:2px 8px;border-radius:999px;border:1px solid #5a86dd;font-size:.8rem;text-transform:capitalize}
 .status.airborne{background:#1c5f2a;border-color:#4acb6a}
 .status.arrived{background:#3b3b3b;border-color:#8d8d8d}

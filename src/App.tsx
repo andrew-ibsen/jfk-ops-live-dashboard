@@ -20,6 +20,7 @@ type Flight = {
 type Assignments = Record<string, { certifier?: string; mechanic?: string; station?: string }>
 type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: number }>
 type HexRegCache = Record<string, { reg: string; updatedAt: number }>
+type ManualRegOverrides = Record<string, string>
 
 type WeatherSnapshot = {
   tempC: string
@@ -348,6 +349,9 @@ export default function App() {
   const [hexRegCache, setHexRegCache] = useState<HexRegCache>(() => {
     try { return JSON.parse(localStorage.getItem('ops-hex-reg-cache') || '{}') } catch { return {} }
   })
+  const [manualRegOverrides, setManualRegOverrides] = useState<ManualRegOverrides>(() => {
+    try { return JSON.parse(localStorage.getItem('ops-manual-reg-overrides') || '{}') } catch { return {} }
+  })
   const [liveError, setLiveError] = useState('')
   const [feedHealth, setFeedHealth] = useState<any>(null)
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null)
@@ -364,6 +368,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('ops-assignments', JSON.stringify(assignments)) }, [assignments])
   useEffect(() => { localStorage.setItem('ops-enrichment-cache', JSON.stringify(enrichmentCache)) }, [enrichmentCache])
   useEffect(() => { localStorage.setItem('ops-hex-reg-cache', JSON.stringify(hexRegCache)) }, [hexRegCache])
+  useEffect(() => { localStorage.setItem('ops-manual-reg-overrides', JSON.stringify(manualRegOverrides)) }, [manualRegOverrides])
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000)
     return () => clearInterval(t)
@@ -425,13 +430,16 @@ export default function App() {
     // Free-source resilience: apply cached reg/type when live enrichment misses.
     Array.from(map.values()).forEach((f) => {
       const c = enrichmentCache[f.flight]
-      if (!c) return
-      if (!f.reg && c.reg) f.reg = c.reg
-      if (!f.aircraftType && c.type) f.aircraftType = c.type
+      if (c) {
+        if (!f.reg && c.reg) f.reg = c.reg
+        if (!f.aircraftType && c.type) f.aircraftType = c.type
+      }
+      const manualKey = `${stationCode}|${f.flight}`
+      if (manualRegOverrides[manualKey]) f.reg = manualRegOverrides[manualKey]
     })
 
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
-  }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache])
+  }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache, manualRegOverrides, stationCode])
 
   const stationStaff = STAFF_BY_STATION[stationCode] || { mechanics: [], certifiers: [] }
 
@@ -453,6 +461,19 @@ export default function App() {
 
   const setAssign = (flightKey: string, field: 'certifier' | 'mechanic', value: string) => {
     setAssignments((prev) => ({ ...prev, [flightKey]: { ...prev[flightKey], [field]: value, station: stationCode } }))
+  }
+
+  const editReg = (flight: string, current?: string) => {
+    const val = window.prompt(`Set registration for ${flight}`, current || '')
+    if (val === null) return
+    const key = `${stationCode}|${flight}`
+    const cleaned = val.trim().toUpperCase()
+    setManualRegOverrides((prev) => {
+      const next = { ...prev }
+      if (!cleaned) delete next[key]
+      else next[key] = cleaned
+      return next
+    })
   }
 
   const assignedUsers = useMemo(() => {
@@ -670,7 +691,7 @@ export default function App() {
                 <tr key={f.key}>
                   <td>{f.airline}</td>
                   <td>{f.flight}</td>
-                  <td>{f.reg || '-'}</td>
+                  <td><span>{f.reg || '-'}</span> <button className="miniBtn" onClick={() => editReg(f.flight, f.reg)} title="Set manual registration">✎</button></td>
                   <td>{f.aircraftType || '-'}</td>
                   <td>{normalizeTime(f.eta) || '-'}</td>
                   <td>{normalizeTime(f.std) || '-'}</td>
