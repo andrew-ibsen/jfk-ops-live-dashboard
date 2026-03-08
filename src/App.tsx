@@ -294,7 +294,7 @@ function normalizeRegByAirline(airline: string, reg?: string) {
     EI: 'EI',
     IB: 'EC',
     LL: 'EC',
-    QF: 'ZH',
+    QF: 'VH',
     NZ: 'ZK',
     AY: 'AY'
   }
