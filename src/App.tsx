@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 type Staff = { name: string; role: 'Mechanic' | 'Certifier'; shift?: string; absence?: string }
+type LiveStage = 'scheduled' | 'airborne' | 'arrived' | 'landing' | 'departed' | 'taxi'
+
 type Flight = {
   key: string
   airline: string
@@ -9,7 +11,7 @@ type Flight = {
   eta?: string
   std?: string
   reg?: string
-  status?: 'scheduled' | 'airborne' | 'arrived'
+  status?: LiveStage
   aircraftType?: string
 }
 
@@ -198,7 +200,21 @@ async function fetchOpenSky(station: Station) {
   const prefixes = ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
   return states
     .filter((s) => prefixes.some((p) => String(s[1] || '').trim().startsWith(p)))
-    .map((s) => ({ callsign: String(s[1] || '').trim(), hex: String(s[0] || '').toUpperCase(), status: (s[8] ? 'airborne' : 'arrived') as 'airborne' | 'arrived' }))
+    .map((s) => {
+      const onGround = Boolean(s[8])
+      const velocity = Number(s[9] || 0) // m/s
+      const verticalRate = Number(s[11] || 0) // m/s
+      const geoAlt = Number(s[13] || s[7] || 0) // meters
+
+      let status: LiveStage = 'scheduled'
+      if (onGround && velocity > 7) status = 'taxi'
+      else if (onGround) status = 'arrived'
+      else if (!onGround && geoAlt < 1200 && verticalRate < -1.5) status = 'landing'
+      else if (!onGround && geoAlt < 1500 && verticalRate > 1.5) status = 'departed'
+      else status = 'airborne'
+
+      return { callsign: String(s[1] || '').trim(), hex: String(s[0] || '').toUpperCase(), status }
+    })
 }
 
 function primaryFlightToken(flight: string) {
@@ -208,7 +224,7 @@ function primaryFlightToken(flight: string) {
 export default function App() {
   const [activity, setActivity] = useState<{ date?: string; flights: Flight[]; staff: Staff[]; suggestedAssignments?: Assignments }>({ flights: [], staff: [] })
   const [stationCode, setStationCode] = useState('JFK')
-  const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: 'airborne' | 'arrived' }>>([])
+  const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: LiveStage }>>([])
   const [liveError, setLiveError] = useState('')
   const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null)
   const [clock, setClock] = useState(new Date())

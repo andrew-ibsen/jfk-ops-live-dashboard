@@ -17,7 +17,11 @@ button{cursor:pointer;font-weight:600}.stats{display:flex;flex-wrap:wrap;gap:14p
 table{width:100%;min-width:1200px;border-collapse:collapse}
 th,td{padding:9px;border-bottom:1px solid #1e3f80;text-align:left}
 .status{padding:2px 8px;border-radius:999px;border:1px solid #5a86dd;font-size:.8rem;text-transform:capitalize}
-.status.airborne{background:#1c5f2a;border-color:#4acb6a}.status.arrived{background:#3b3b3b;border-color:#8d8d8d}
+.status.airborne{background:#1c5f2a;border-color:#4acb6a}
+.status.arrived{background:#3b3b3b;border-color:#8d8d8d}
+.status.landing{background:#7a5a1a;border-color:#e5b84d}
+.status.departed{background:#1f4f7a;border-color:#6fb3ea}
+.status.taxi{background:#5a2f79;border-color:#bf83e7}
 .scaleWrap,.overlayWrap{display:grid;grid-template-columns:220px 1fr;gap:8px;align-items:center}
 .scaleLabelPad{display:block}
 .scale{display:grid;grid-template-columns:repeat(25,1fr);gap:2px;font-size:.68rem;opacity:.85;margin-bottom:6px}
