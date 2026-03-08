@@ -335,7 +335,7 @@ export default function App() {
       {liveError && <section className="panel warn">{liveError}</section>}
 
       <section className="panel tableWrap">
-        <h2>Flight Assignment Board</h2>
+        <h2>Daily Roster</h2>
         <table>
           <thead>
             <tr>
