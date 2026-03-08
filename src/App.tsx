@@ -255,6 +255,9 @@ export default function App() {
     setAssignments((prev) => ({ ...prev, [flightKey]: { ...prev[flightKey], [field]: value } }))
   }
 
+  const nowMinutes = clock.getHours() * 60 + clock.getMinutes()
+  const nowPct = (nowMinutes / (24 * 60)) * 100
+
   const loadLive = async () => {
     setLiveError('')
     try { setLive(await fetchOpenSky(station)) }
@@ -374,6 +377,7 @@ export default function App() {
               }).length
               return <div key={h} style={{ opacity: Math.min(c / 6, 0.65) }} title={`${c} flights around ${String(h).padStart(2, '0')}:00`} />
             })}
+            <div className="nowLine" style={{ left: `${nowPct}%` }} title={`Now ${clock.toLocaleTimeString()}`} />
           </div>
         </div>
         <div className="gantt">
@@ -386,6 +390,7 @@ export default function App() {
                 <span>{f.airline} {f.flight}</span>
                 <div className="gTrack">
                   {segs.map((s, i) => <div key={i} className="gBar" style={{ left: `${s.left}%`, width: `${s.width}%` }} />)}
+                  <div className="nowLine" style={{ left: `${nowPct}%` }} />
                 </div>
               </div>
             )
