@@ -212,6 +212,7 @@ export default function App() {
   const [liveError, setLiveError] = useState('')
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
+  const [dailyFileName, setDailyFileName] = useState('No file selected')
   const [assignments, setAssignments] = useState<Assignments>(() => {
     try { return JSON.parse(localStorage.getItem('ops-assignments') || '{}') } catch { return {} }
   })
@@ -298,24 +299,29 @@ export default function App() {
         </label>
         <label>
           Daily Activity CSV
-          <input type="file" accept=".csv" onChange={async (e) => {
-            const f = e.target.files?.[0]
-            if (!f) return
-            const rows = parseCsv(await f.text())
-            const parsed = parseDailyActivity(rows)
-            setActivity(parsed)
-            const suggestions = parsed.suggestedAssignments || {}
-            if (Object.keys(suggestions).length) {
-              setAssignments((prev) => {
-                const next = { ...prev }
-                mergedFlights.forEach((fl) => {
-                  const key = `BA${fl.flight.replace(/[^0-9/]/g, '')}`
-                  if (suggestions[key]) next[fl.key] = { ...next[fl.key], ...suggestions[key] }
+          <div className="fileRow">
+            <label className="fileBtn" htmlFor="daily-csv">Choose CSV</label>
+            <span className="fileName">{dailyFileName}</span>
+            <input id="daily-csv" className="hiddenFile" type="file" accept=".csv" onChange={async (e) => {
+              const f = e.target.files?.[0]
+              if (!f) return
+              setDailyFileName(f.name)
+              const rows = parseCsv(await f.text())
+              const parsed = parseDailyActivity(rows)
+              setActivity(parsed)
+              const suggestions = parsed.suggestedAssignments || {}
+              if (Object.keys(suggestions).length) {
+                setAssignments((prev) => {
+                  const next = { ...prev }
+                  mergedFlights.forEach((fl) => {
+                    const key = `BA${fl.flight.replace(/[^0-9/]/g, '')}`
+                    if (suggestions[key]) next[fl.key] = { ...next[fl.key], ...suggestions[key] }
+                  })
+                  return next
                 })
-                return next
-              })
-            }
-          }} />
+              }
+            }} />
+          </div>
         </label>
         <label>
           Manual Staff Add (one per line)
