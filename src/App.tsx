@@ -267,7 +267,7 @@ export default function App() {
   return (
     <div className="page">
       <header>
-        <h1>MRO on the GO — BA JFK Operational Dashboard</h1>
+        <h1>British Airways Line Maintenance Operational Dashboard — {stationCode}</h1>
         <p>Single-file workflow: upload Daily Activity CSV, assign crews, visualize overlaps.</p>
       </header>
 
