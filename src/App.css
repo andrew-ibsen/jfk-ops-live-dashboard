@@ -11,10 +11,12 @@ table{width:100%;min-width:1200px;border-collapse:collapse}
 th,td{padding:9px;border-bottom:1px solid #1e3f80;text-align:left}
 .status{padding:2px 8px;border-radius:999px;border:1px solid #5a86dd;font-size:.8rem;text-transform:capitalize}
 .status.airborne{background:#1c5f2a;border-color:#4acb6a}.status.arrived{background:#3b3b3b;border-color:#8d8d8d}
+.scaleWrap,.overlayWrap{display:grid;grid-template-columns:220px 1fr;gap:8px;align-items:center}
+.scaleLabelPad{display:block}
 .scale{display:grid;grid-template-columns:repeat(25,1fr);gap:2px;font-size:.68rem;opacity:.85;margin-bottom:6px}
 .busyOverlay{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;height:24px;margin-bottom:8px}
 .busyOverlay>div{background:#ffdf6b;border-radius:3px;opacity:.1}
 .gantt{display:grid;gap:8px}.gRow{display:grid;grid-template-columns:220px 1fr;gap:8px;align-items:center}
-.gTrack{position:relative;height:16px;background:#102a61;border-radius:999px;border:1px solid #2957ae}
+.gTrack{position:relative;height:16px;background:#102a61;border-radius:999px;border:1px solid #2957ae;overflow:hidden}
 .gBar{position:absolute;height:100%;background:linear-gradient(90deg,#5ba2ff,#9bd0ff);border-radius:999px}
-@media (max-width:980px){.uploads{grid-template-columns:1fr}.gRow{grid-template-columns:1fr}.scale{grid-template-columns:repeat(13,1fr)}}
+@media (max-width:980px){.uploads{grid-template-columns:1fr}.gRow,.scaleWrap,.overlayWrap{grid-template-columns:1fr}.scale{grid-template-columns:repeat(13,1fr)}}

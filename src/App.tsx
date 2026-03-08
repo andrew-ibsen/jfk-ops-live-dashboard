@@ -125,6 +125,19 @@ function toMinutes(v?: string) {
   return Number(t.slice(0, 2)) * 60 + Number(t.slice(2, 4))
 }
 
+function ganttSegments(startMin: number, endMin: number) {
+  // returns 1 or 2 clipped segments in [0..100]% timeline
+  const day = 24 * 60
+  if (endMin >= startMin) {
+    return [{ left: (startMin / day) * 100, width: Math.max(((endMin - startMin) / day) * 100, 1.2) }]
+  }
+  // overnight split
+  return [
+    { left: (startMin / day) * 100, width: Math.max(((day - startMin) / day) * 100, 1.2) },
+    { left: 0, width: Math.max((endMin / day) * 100, 1.2) }
+  ]
+}
+
 async function fetchOpenSky(station: Station) {
   const base = `https://opensky-network.org/api/states/all?lamin=${station.bbox.lamin}&lomin=${station.bbox.lomin}&lamax=${station.bbox.lamax}&lomax=${station.bbox.lomax}`
   const urls = [base, `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`]
@@ -298,29 +311,41 @@ export default function App() {
 
       <section className="panel">
         <h2>Station Flight Gantt (24h)</h2>
-        <div className="scale">
-          {Array.from({ length: 25 }).map((_, i) => <span key={i}>{String(i % 24).padStart(2, '0')}:00</span>)}
+        <div className="scaleWrap">
+          <span className="scaleLabelPad" />
+          <div className="scale">
+            {Array.from({ length: 25 }).map((_, i) => <span key={i}>{String(i % 24).padStart(2, '0')}:00</span>)}
+          </div>
         </div>
-        <div className="busyOverlay">
-          {Array.from({ length: 24 }).map((_, h) => {
-            const c = mergedFlights.filter((f) => {
-              const s = toMinutes(f.eta) ?? 0
-              let e = toMinutes(f.std) ?? s + 60
-              if (e < s) e += 24 * 60
-              const hm = h * 60
-              return hm >= s && hm < e
-            }).length
-            return <div key={h} style={{ opacity: Math.min(c / 6, 0.65) }} title={`${c} flights around ${String(h).padStart(2, '0')}:00`} />
-          })}
+        <div className="overlayWrap">
+          <span className="scaleLabelPad" />
+          <div className="busyOverlay">
+            {Array.from({ length: 24 }).map((_, h) => {
+              const c = mergedFlights.filter((f) => {
+                const s = toMinutes(f.eta) ?? 0
+                const eRaw = toMinutes(f.std) ?? ((s + 60) % (24 * 60))
+                const inRange = eRaw >= s
+                  ? (h * 60 >= s && h * 60 < eRaw)
+                  : (h * 60 >= s || h * 60 < eRaw)
+                return inRange
+              }).length
+              return <div key={h} style={{ opacity: Math.min(c / 6, 0.65) }} title={`${c} flights around ${String(h).padStart(2, '0')}:00`} />
+            })}
+          </div>
         </div>
         <div className="gantt">
           {mergedFlights.map((f) => {
             const start = toMinutes(f.eta) ?? 0
-            let end = toMinutes(f.std) ?? start + 60
-            if (end < start) end += 24 * 60
-            const left = (start / (24 * 60)) * 100
-            const width = Math.max(((end - start) / (24 * 60)) * 100, 1.2)
-            return <div key={`g-${f.key}`} className="gRow"><span>{f.airline} {f.flight}</span><div className="gTrack"><div className="gBar" style={{ left: `${left}%`, width: `${width}%` }} /></div></div>
+            const end = toMinutes(f.std) ?? ((start + 60) % (24 * 60))
+            const segs = ganttSegments(start, end)
+            return (
+              <div key={`g-${f.key}`} className="gRow">
+                <span>{f.airline} {f.flight}</span>
+                <div className="gTrack">
+                  {segs.map((s, i) => <div key={i} className="gBar" style={{ left: `${s.left}%`, width: `${s.width}%` }} />)}
+                </div>
+              </div>
+            )
           })}
         </div>
       </section>
