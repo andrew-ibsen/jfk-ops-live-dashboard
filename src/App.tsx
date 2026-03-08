@@ -283,6 +283,16 @@ function defaultAircraftTypeForFlight(stationCode: string, airline: string) {
   return 'B787/B772/B773/A350'
 }
 
+function normalizeUkRegistration(airline: string, reg?: string) {
+  const a = airline.toUpperCase()
+  if (a !== 'BA') return reg || ''
+  const r = String(reg || '').toUpperCase().replace(/\s+/g, '')
+  if (!r) return 'G-'
+  if (r.startsWith('G-')) return r
+  if (r.startsWith('G') && r.length > 1) return `G-${r.slice(1)}`
+  return `G-${r}`
+}
+
 function normalizeLiveToken(callsign: string) {
   const raw = String(callsign || '').toUpperCase().replace(/\s+/g, '')
   const m = raw.match(/^([A-Z]{2,3})(0*\d{1,4})/)
@@ -513,6 +523,9 @@ export default function App() {
         const ty = defaultAircraftTypeForFlight(stationCode, f.airline)
         if (ty) f.aircraftType = ty
       }
+
+      // UK registration prefix consistency rule from ops guidance.
+      f.reg = normalizeUkRegistration(f.airline, f.reg)
     })
 
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
