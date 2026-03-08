@@ -20,8 +20,8 @@ type Flight = {
 }
 
 type Assignments = Record<string, { certifier?: string; mechanic?: string; station?: string }>
-type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: number }>
-type HexRegCache = Record<string, { reg: string; updatedAt: number }>
+type EnrichmentCache = Record<string, { reg?: string; type?: string; firstSeenAt: number; updatedAt: number }>
+type HexRegCache = Record<string, { reg: string; firstSeenAt: number; updatedAt: number }>
 type ManualRegOverrides = Record<string, string>
 type ManualTypeOverrides = Record<string, string>
 type ManualGateOverrides = Record<string, string>
@@ -88,6 +88,7 @@ const STATIONS: Station[] = [
 ]
 
 const HANDLED_AIRLINES = ['BA', 'EI', 'IB', 'LL', 'AY', 'QF', 'NZ', 'NO', 'Z0', 'NH', 'JL']
+const API_HOLD_MS = 18 * 60 * 60_000
 
 const JFK_BA_DAY_OVERRIDES: Record<string, { eta?: string; std?: string; gate?: string; note?: string }> = {
   'BA117/176': { eta: '1217', std: '2110', gate: '18C' },
@@ -499,7 +500,9 @@ export default function App() {
 
       if (hit) {
         hit.status = lf.status
-        const hexReg = hexRegCache[lf.hex]?.reg
+        const hexHit = hexRegCache[lf.hex]
+        const seenAt = hexHit?.firstSeenAt || hexHit?.updatedAt || 0
+        const hexReg = (hexHit && Date.now() - seenAt <= API_HOLD_MS) ? hexHit.reg : ''
         if (!hit.reg && hexReg) hit.reg = hexReg
       }
     })
@@ -523,8 +526,12 @@ export default function App() {
     Array.from(map.values()).forEach((f) => {
       const c = enrichmentCache[f.flight]
       if (c) {
-        if (!f.reg && c.reg) f.reg = c.reg
-        if (!f.aircraftType && c.type) f.aircraftType = c.type
+        const seenAt = c.firstSeenAt || c.updatedAt
+        const withinHold = Date.now() - seenAt <= API_HOLD_MS
+        if (withinHold) {
+          if (!f.reg && c.reg) f.reg = c.reg
+          if (!f.aircraftType && c.type) f.aircraftType = c.type
+        }
       }
       const manualKey = `${stationCode}|${f.flight}`
       if (manualRegOverrides[manualKey]) f.reg = manualRegOverrides[manualKey]
@@ -723,7 +730,10 @@ export default function App() {
             setHexRegCache((prev) => {
               const next = { ...prev }
               const ts = Date.now()
-              hits.forEach((h) => { next[h.hex] = { reg: h.reg, updatedAt: ts } })
+              hits.forEach((h) => {
+                const cur = next[h.hex]
+                next[h.hex] = { reg: h.reg, firstSeenAt: cur?.firstSeenAt || ts, updatedAt: ts }
+              })
               return next
             })
           }
@@ -736,8 +746,13 @@ export default function App() {
           const next = { ...prev }
           en.rows.forEach((r: any) => {
             if (!r?.flight) return
-            const cur = next[r.flight] || { updatedAt: ts }
-            next[r.flight] = { reg: r.reg || cur.reg, type: r.type || cur.type, updatedAt: ts }
+            const cur = next[r.flight]
+            next[r.flight] = {
+              reg: r.reg || cur?.reg,
+              type: r.type || cur?.type,
+              firstSeenAt: cur?.firstSeenAt || ts,
+              updatedAt: ts
+            }
           })
           return next
         })
