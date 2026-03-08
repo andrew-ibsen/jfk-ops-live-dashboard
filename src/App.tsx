@@ -900,7 +900,7 @@ export default function App() {
             {mergedFlights.map((f) => {
               const a = assignments[f.key] || {}
               return (
-                <tr key={f.key}>
+                <tr key={f.key} className={f.status === 'cancelled' ? 'rowCancelled' : ''}>
                   <td>{f.airline}</td>
                   <td>{f.flight}</td>
                   <td><span>{f.reg || '-'}</span> <button className="miniBtn" onClick={() => editReg(f.flight, f.reg)} title="Set manual registration">✎</button></td>
