@@ -66,7 +66,7 @@ const STATIONS: Station[] = [
   { code: 'YYZ', name: 'YYZ', bbox: DEFAULT_BBOX }
 ]
 
-const HANDLED_AIRLINES = ['BA', 'EI', 'IB', 'LEVEL', 'AY', 'QF', 'NZ', 'NO', 'Z0', 'NH', 'JL']
+const HANDLED_AIRLINES = ['BA', 'EI', 'IB', 'LL', 'AY', 'QF', 'NZ', 'NO', 'Z0', 'NH', 'JL']
 
 const DEFAULT_STAFF = [
   'Alan Larmour','ALLEN BARKER','Andreas Leuschner','Angel Angelov','Anthony D\'Erasmo','Ari Portugal','Brandon Pareja Castanc',
@@ -81,7 +81,7 @@ const PLANNED: Omit<Flight, 'key' | 'reg' | 'status'>[] = [
   { airline: 'EI', flight: 'EI107/106', eta: '2029', std: '2200', aircraftType: 'A321' },
   { airline: 'IB', flight: 'IB211/212', eta: '1625', std: '1755', aircraftType: 'A32X' },
   { airline: 'IB', flight: 'IB325/326', eta: '2015', std: '2150', aircraftType: 'A330' },
-  { airline: 'LEVEL', flight: 'IB2627/2628', eta: '2200', std: '2325', aircraftType: 'A330' },
+  { airline: 'LL', flight: 'IB2627/2628', eta: '2200', std: '2325', aircraftType: 'A330' },
   { airline: 'AY', flight: 'AY15/16', eta: '2005', std: '2345', aircraftType: 'A330' },
   { airline: 'QF', flight: 'QF3/4', eta: '1525', std: '1815', aircraftType: 'B787' },
   { airline: 'NZ', flight: 'NZ2/1', eta: '1700', std: '1920', aircraftType: 'B787' },
