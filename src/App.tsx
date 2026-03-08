@@ -215,6 +215,7 @@ export default function App() {
   const [assignments, setAssignments] = useState<Assignments>(() => {
     try { return JSON.parse(localStorage.getItem('ops-assignments') || '{}') } catch { return {} }
   })
+  const [ganttUserFilter, setGanttUserFilter] = useState('')
 
   useEffect(() => { localStorage.setItem('ops-assignments', JSON.stringify(assignments)) }, [assignments])
   useEffect(() => {
@@ -254,6 +255,23 @@ export default function App() {
   const setAssign = (flightKey: string, field: 'certifier' | 'mechanic', value: string) => {
     setAssignments((prev) => ({ ...prev, [flightKey]: { ...prev[flightKey], [field]: value } }))
   }
+
+  const assignedUsers = useMemo(() => {
+    const set = new Set<string>()
+    Object.values(assignments).forEach((a) => {
+      if (a.certifier) set.add(a.certifier)
+      if (a.mechanic) set.add(a.mechanic)
+    })
+    return Array.from(set).sort()
+  }, [assignments])
+
+  const ganttFlights = useMemo(() => {
+    if (!ganttUserFilter) return mergedFlights
+    return mergedFlights.filter((f) => {
+      const a = assignments[f.key] || {}
+      return a.certifier === ganttUserFilter || a.mechanic === ganttUserFilter
+    })
+  }, [mergedFlights, assignments, ganttUserFilter])
 
   const nowMinutes = clock.getHours() * 60 + clock.getMinutes()
   const nowPct = (nowMinutes / (24 * 60)) * 100
@@ -358,9 +376,18 @@ export default function App() {
       <section className="panel">
         <div className="ganttHeader">
           <h2>Station Flight Gantt (24h)</h2>
-          <div className="ganttClocks">
-            <span>Local: {clock.toLocaleTimeString()}</span>
-            <span>UTC: {clock.toUTCString().split(' ')[4]}Z</span>
+          <div className="ganttControls">
+            <label>
+              Filter by user:{' '}
+              <select value={ganttUserFilter} onChange={(e) => setGanttUserFilter(e.target.value)}>
+                <option value="">All assigned flights</option>
+                {assignedUsers.map((u) => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </label>
+            <div className="ganttClocks">
+              <span>Local: {clock.toLocaleTimeString()}</span>
+              <span>UTC: {clock.toUTCString().split(' ')[4]}Z</span>
+            </div>
           </div>
         </div>
         <div className="scaleWrap">
@@ -373,7 +400,7 @@ export default function App() {
           <span className="scaleLabelPad" />
           <div className="busyOverlay">
             {Array.from({ length: 24 }).map((_, h) => {
-              const c = mergedFlights.filter((f) => {
+              const c = ganttFlights.filter((f) => {
                 const s = toMinutes(f.eta) ?? 0
                 const eRaw = toMinutes(f.std) ?? ((s + 60) % (24 * 60))
                 const inRange = eRaw >= s
@@ -387,7 +414,7 @@ export default function App() {
           </div>
         </div>
         <div className="gantt">
-          {mergedFlights.map((f) => {
+          {ganttFlights.map((f) => {
             const start = toMinutes(f.eta) ?? 0
             const end = toMinutes(f.std) ?? ((start + 60) % (24 * 60))
             const segs = ganttSegments(start, end)
