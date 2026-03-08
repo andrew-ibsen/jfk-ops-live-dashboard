@@ -17,10 +17,53 @@ type Assignments = Record<string, { certifier?: string; mechanic?: string }>
 
 type Station = { code: string; name: string; bbox: { lamin: number; lomin: number; lamax: number; lomax: number } }
 
+const DEFAULT_BBOX = { lamin: 40.2, lomin: -74.3, lamax: 41.1, lomax: -73.2 } // fallback until per-station bbox map is added
+
 const STATIONS: Station[] = [
-  { code: 'JFK', name: 'New York JFK', bbox: { lamin: 40.2, lomin: -74.3, lamax: 41.1, lomax: -73.2 } },
-  { code: 'LHR', name: 'London Heathrow', bbox: { lamin: 51.2, lomin: -0.7, lamax: 51.7, lomax: 0.1 } },
-  { code: 'LGW', name: 'London Gatwick', bbox: { lamin: 51.0, lomin: -0.4, lamax: 51.3, lomax: 0.1 } }
+  { code: 'ABV', name: 'ABV', bbox: DEFAULT_BBOX },
+  { code: 'ATL', name: 'ATL', bbox: DEFAULT_BBOX },
+  { code: 'AUS', name: 'AUS', bbox: DEFAULT_BBOX },
+  { code: 'BAH', name: 'BAH', bbox: DEFAULT_BBOX },
+  { code: 'BCN', name: 'BCN', bbox: DEFAULT_BBOX },
+  { code: 'BLR', name: 'BLR', bbox: DEFAULT_BBOX },
+  { code: 'BNA', name: 'BNA', bbox: DEFAULT_BBOX },
+  { code: 'BOM', name: 'BOM', bbox: DEFAULT_BBOX },
+  { code: 'BOS', name: 'BOS', bbox: DEFAULT_BBOX },
+  { code: 'BWI', name: 'BWI', bbox: DEFAULT_BBOX },
+  { code: 'CAI', name: 'CAI', bbox: DEFAULT_BBOX },
+  { code: 'DEL', name: 'DEL', bbox: DEFAULT_BBOX },
+  { code: 'DEN', name: 'DEN', bbox: DEFAULT_BBOX },
+  { code: 'DFW', name: 'DFW', bbox: DEFAULT_BBOX },
+  { code: 'EDI', name: 'EDI', bbox: DEFAULT_BBOX },
+  { code: 'EWR', name: 'EWR', bbox: DEFAULT_BBOX },
+  { code: 'GLA', name: 'GLA', bbox: DEFAULT_BBOX },
+  { code: 'HYD', name: 'HYD', bbox: DEFAULT_BBOX },
+  { code: 'IAD', name: 'IAD', bbox: DEFAULT_BBOX },
+  { code: 'IAH', name: 'IAH', bbox: DEFAULT_BBOX },
+  { code: 'JFK', name: 'JFK', bbox: { lamin: 40.2, lomin: -74.3, lamax: 41.1, lomax: -73.2 } },
+  { code: 'LAS', name: 'LAS', bbox: DEFAULT_BBOX },
+  { code: 'LAX', name: 'LAX', bbox: DEFAULT_BBOX },
+  { code: 'LGW', name: 'LGW', bbox: { lamin: 51.0, lomin: -0.4, lamax: 51.3, lomax: 0.1 } },
+  { code: 'LOS', name: 'LOS', bbox: DEFAULT_BBOX },
+  { code: 'MAD', name: 'MAD', bbox: DEFAULT_BBOX },
+  { code: 'MAN', name: 'MAN', bbox: DEFAULT_BBOX },
+  { code: 'MCO', name: 'MCO', bbox: DEFAULT_BBOX },
+  { code: 'MIA', name: 'MIA', bbox: DEFAULT_BBOX },
+  { code: 'NCL', name: 'NCL', bbox: DEFAULT_BBOX },
+  { code: 'ORD', name: 'ORD', bbox: DEFAULT_BBOX },
+  { code: 'PDX', name: 'PDX', bbox: DEFAULT_BBOX },
+  { code: 'PHL', name: 'PHL', bbox: DEFAULT_BBOX },
+  { code: 'PHX', name: 'PHX', bbox: DEFAULT_BBOX },
+  { code: 'SAN', name: 'SAN', bbox: DEFAULT_BBOX },
+  { code: 'SEA', name: 'SEA', bbox: DEFAULT_BBOX },
+  { code: 'SFO', name: 'SFO', bbox: DEFAULT_BBOX },
+  { code: 'STL', name: 'STL', bbox: DEFAULT_BBOX },
+  { code: 'SYD', name: 'SYD', bbox: DEFAULT_BBOX },
+  { code: 'TBC', name: 'TBC', bbox: DEFAULT_BBOX },
+  { code: 'TPA', name: 'TPA', bbox: DEFAULT_BBOX },
+  { code: 'YUL', name: 'YUL', bbox: DEFAULT_BBOX },
+  { code: 'YYC', name: 'YYC', bbox: DEFAULT_BBOX },
+  { code: 'YYZ', name: 'YYZ', bbox: DEFAULT_BBOX }
 ]
 
 const HANDLED_AIRLINES = ['BA', 'EI', 'IB', 'LEVEL', 'AY', 'QF', 'NZ', 'NO', 'Z0', 'NH', 'JL']
