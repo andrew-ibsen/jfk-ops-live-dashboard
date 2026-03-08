@@ -1,9 +1,10 @@
 *{box-sizing:border-box}
 body{margin:0;background:linear-gradient(180deg,#06122c,#081a3e);color:#f5f8ff;font-family:Inter,Segoe UI,sans-serif}
-.page{max-width:1500px;margin:0 auto;padding:16px;display:grid;gap:12px}
-header h1{margin:0}.panel{background:#0b1f49;border:1px solid #21478e;border-radius:12px;padding:12px}
-.topHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
-.weatherBox{min-width:220px;background:rgba(14,40,93,.85);border:1px solid #3d6dcc;border-radius:10px;padding:10px;display:grid;gap:3px}
+.page{max-width:1500px;margin:0 auto;padding:10px;display:grid;gap:8px}
+header h1{margin:0;font-size:2rem;line-height:1.1}.panel{background:#0b1f49;border:1px solid #21478e;border-radius:12px;padding:8px 10px}
+.topHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:nowrap}
+.topHeader p{margin:4px 0 0 0;font-size:.92rem;opacity:.9}
+.weatherBox{min-width:200px;background:rgba(14,40,93,.85);border:1px solid #3d6dcc;border-radius:10px;padding:8px;display:grid;gap:2px}
 .weatherBox h3{margin:0 0 4px 0;font-size:.95rem}
 .weatherBox small{opacity:.9}
 .wxNow{display:flex;align-items:center;gap:8px}
@@ -11,16 +12,17 @@ header h1{margin:0}.panel{background:#0b1f49;border:1px solid #21478e;border-rad
 .ganttHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .ganttControls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .ganttClocks{display:flex;gap:12px;font-size:.85rem;color:#b9cdf7}
-.uploads{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:10px;align-items:end}
-.uploads label{display:grid;gap:6px;font-size:.9rem}
-input,select,button,textarea{background:#102a61;color:#fff;border:1px solid #3a67bf;border-radius:8px;padding:8px}
-button{cursor:pointer;font-weight:600}.stats{display:flex;flex-wrap:wrap;gap:14px}
+.uploads{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:8px;align-items:end}
+.uploads label{display:grid;gap:4px;font-size:.85rem}
+input,select,button,textarea{background:#102a61;color:#fff;border:1px solid #3a67bf;border-radius:8px;padding:6px}
+textarea{min-height:64px}
+button{cursor:pointer;font-weight:600}.stats{display:flex;flex-wrap:wrap;gap:10px;font-size:.9rem}
 .feed{padding:2px 8px;border-radius:999px;border:1px solid #5a86dd;font-size:.78rem}
 .feed.ok{background:#1c5f2a;border-color:#4acb6a}
 .feed.bad{background:#6b1f2a;border-color:#e66a7c}
-.fileRow{display:flex;gap:8px;align-items:center}
-.fileBtn{display:inline-block;background:#1d458f;color:#fff;border:1px solid #5f8deb;border-radius:8px;padding:8px 10px;cursor:pointer;white-space:nowrap}
-.fileName{font-size:.82rem;color:#c5d6fb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+.fileRow{display:flex;gap:6px;align-items:center}
+.fileBtn{display:inline-block;background:#1d458f;color:#fff;border:1px solid #5f8deb;border-radius:8px;padding:6px 9px;cursor:pointer;white-space:nowrap}
+.fileName{font-size:.78rem;color:#c5d6fb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}
 .hiddenFile{display:none}
 .warn{border-color:#d4a431;background:#3d2f0f}.tableWrap{overflow:auto}
 table{width:100%;min-width:1200px;border-collapse:collapse}
@@ -42,4 +44,5 @@ th,td{padding:9px;border-bottom:1px solid #1e3f80;text-align:left}
 .gBar:hover{filter:brightness(1.08)}
 .gBarLabel{font-size:.65rem;color:#082257;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nowLine{position:absolute;top:-2px;bottom:-2px;width:2px;background:#ff5a5f;box-shadow:0 0 6px rgba(255,90,95,.7);z-index:3}
+@media (max-width:1100px){.topHeader{flex-wrap:wrap}}
 @media (max-width:980px){.uploads{grid-template-columns:1fr}.gRow,.scaleWrap,.overlayWrap{grid-template-columns:1fr}.scale{grid-template-columns:repeat(13,1fr)}}
