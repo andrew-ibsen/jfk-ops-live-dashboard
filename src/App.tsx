@@ -89,6 +89,17 @@ const STATIONS: Station[] = [
 
 const HANDLED_AIRLINES = ['BA', 'EI', 'IB', 'LL', 'AY', 'QF', 'NZ', 'NO', 'Z0', 'NH', 'JL']
 
+const JFK_BA_DAY_OVERRIDES: Record<string, { eta?: string; std?: string; gate?: string; note?: string }> = {
+  'BA117/176': { eta: '1217', std: '2110', gate: '18C' },
+  'BA175/172': { eta: '1334', std: '2140', gate: '18D' },
+  'BA173/112': { eta: '1521', std: '1915', gate: '20' },
+  'BA177/174': { eta: '1658', std: '1950', gate: '16' },
+  'BA115/116': { eta: '1810', std: '2105', gate: '14' },
+  'BA113/114': { eta: '2035', std: '2235', gate: '18' },
+  'BA179/182': { eta: '2205', std: '0020', gate: '14' },
+  'BA183/178': { eta: '2305', std: '0905', gate: '20' }
+}
+
 const PLANNED: Omit<Flight, 'key' | 'reg' | 'status'>[] = [
   { airline: 'EI', flight: 'EI105/104', eta: '1455', std: '1800', aircraftType: 'A330' },
   { airline: 'EI', flight: 'EI111/110', eta: '1625', std: '1830', aircraftType: 'A321' },
@@ -481,6 +492,15 @@ export default function App() {
       if (manualRegOverrides[manualKey]) f.reg = manualRegOverrides[manualKey]
       if (manualTypeOverrides[manualKey]) f.aircraftType = manualTypeOverrides[manualKey]
       if (manualGateOverrides[manualKey]) f.gate = manualGateOverrides[manualKey]
+
+      if (stationCode === 'JFK' && f.airline === 'BA') {
+        const o = JFK_BA_DAY_OVERRIDES[f.flight]
+        if (o) {
+          if (o.eta) f.eta = o.eta
+          if (o.std) f.std = o.std
+          if (o.gate) f.gate = o.gate
+        }
+      }
 
       // Terminal defaults from ops rules (can be overwritten by data feed/manual updates).
       if (!f.terminal) {
