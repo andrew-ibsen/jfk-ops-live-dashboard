@@ -1,0 +1,9 @@
+.page{max-width:1400px;margin:0 auto;padding:18px;font-family:Inter,Segoe UI,sans-serif;color:#eaf0ff}
+.uploadGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:#11182b;border:1px solid #2a3c61;border-radius:12px;padding:12px}
+input[type=file]{display:block;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:8px;border-bottom:1px solid #233557;text-align:left}
+h1,h2,h3{margin:8px 0}
+@media (max-width:900px){.uploadGrid,.grid{grid-template-columns:1fr}}
