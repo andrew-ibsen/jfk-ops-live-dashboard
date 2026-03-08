@@ -248,6 +248,15 @@ function flightTokens(flight: string) {
   return [`${p}${Number(m[2])}`, `${p}${Number(m[3])}`]
 }
 
+function defaultTerminalForAirline(airline: string) {
+  const a = airline.toUpperCase()
+  // Business rules provided by ops (subject to annual airport changes).
+  if (a === 'NZ') return 'T1'
+  if (a === 'NH' || a === 'EI' || a === 'NO' || a === 'Z0') return 'T7'
+  if (['BA', 'IB', 'LL', 'AY', 'QF', 'JL'].includes(a)) return 'T8'
+  return ''
+}
+
 function normalizeLiveToken(callsign: string) {
   const raw = String(callsign || '').toUpperCase().replace(/\s+/g, '')
   const m = raw.match(/^([A-Z]{2,3})(0*\d{1,4})/)
@@ -447,6 +456,12 @@ export default function App() {
       }
       const manualKey = `${stationCode}|${f.flight}`
       if (manualRegOverrides[manualKey]) f.reg = manualRegOverrides[manualKey]
+
+      // Terminal defaults from ops rules (can be overwritten by data feed/manual updates).
+      if (!f.terminal) {
+        const t = defaultTerminalForAirline(f.airline)
+        if (t) f.terminal = t
+      }
     })
 
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
