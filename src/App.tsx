@@ -116,6 +116,11 @@ function parseCsv(text: string): string[][] {
   return out
 }
 
+function flightPairToken(text: string) {
+  const m = (text || '').match(/(\d{3,4})\s*\/\s*(\d{3,4})/)
+  return m ? `${m[1]}/${m[2]}` : ''
+}
+
 function parseDailyActivity(rows: string[][]) {
   const date = rows.find((r) => /\d{2}\/\d{2}\/\d{4}/.test(r[0] || ''))?.[0]?.split(' ')[0]
   const flights: Flight[] = []
@@ -135,21 +140,32 @@ function parseDailyActivity(rows: string[][]) {
   }
 
   const ss = rows.findIndex((r) => (r[0] || '').toLowerCase() === 'mechanics')
+  let currentMech = ''
+  let currentCert = ''
   for (let i = ss + 1; ss >= 0 && i < rows.length; i++) {
     const r = rows[i]
     if ((r[0] || '').startsWith('Shift A')) break
-    const mech = r[0]
-    const cert = r[3]
-    const op = r[5] || ''
-    if (mech) staff.push({ name: mech, role: 'Mechanic', shift: r[2] })
-    if (cert) staff.push({ name: cert, role: 'Certifier', shift: r[5] })
+
+    const mech = (r[0] || '').trim()
+    const cert = (r[3] || '').trim()
+    const op = (r[5] || '').trim()
+
+    if (mech) {
+      currentMech = mech
+      staff.push({ name: mech, role: 'Mechanic', shift: r[2] })
+    }
+    if (cert) {
+      currentCert = cert
+      staff.push({ name: cert, role: 'Certifier', shift: r[4] || r[5] })
+    }
     if (r[7]) staff.push({ name: r[7], role: 'Mechanic', absence: r[9] || 'Absent' })
 
-    if (/\d/.test(op)) {
-      const nums = op.match(/\d{3,4}\/\d{3,4}/)?.[0]
-      if (nums) {
-        const key = `BA${nums}`
-        suggestedAssignments[key] = { certifier: cert || undefined, mechanic: mech || undefined }
+    const pair = flightPairToken(op)
+    if (pair) {
+      const key = `BA${pair}`
+      suggestedAssignments[key] = {
+        certifier: currentCert || undefined,
+        mechanic: currentMech || undefined
       }
     }
   }
@@ -341,8 +357,9 @@ export default function App() {
                 setAssignments((prev) => {
                   const next = { ...prev }
                   mergedFlights.forEach((fl) => {
-                    const key = `BA${fl.flight.replace(/[^0-9/]/g, '')}`
-                    if (suggestions[key]) next[fl.key] = { ...next[fl.key], ...suggestions[key] }
+                    const flPair = flightPairToken(fl.flight)
+                    const key = fl.airline === 'BA' && flPair ? `BA${flPair}` : ''
+                    if (key && suggestions[key]) next[fl.key] = { ...next[fl.key], ...suggestions[key] }
                   })
                   return next
                 })
