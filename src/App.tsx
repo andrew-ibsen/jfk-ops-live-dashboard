@@ -81,12 +81,20 @@ const STATIONS: Station[] = [
 
 const HANDLED_AIRLINES = ['BA', 'EI', 'IB', 'LL', 'AY', 'QF', 'NZ', 'NO', 'Z0', 'NH', 'JL']
 
-const DEFAULT_STAFF = [
-  'Alan Larmour','ALLEN BARKER','Andreas Leuschner','Angel Angelov','Anthony D\'Erasmo','Ari Portugal','Brandon Pareja Castanc',
-  'Craig Bowles','Fahim Abrar','Gabriel Torres','Garfield Lamont','Hassan Ahmad','Ian Richards','Jordan Iordanov','Jason Davies',
-  'Kana Balasingam','Mark Ferrel','Mike Hamarsha','Naresh Dindiall','Nidal Hajouj','Nikolas Dundon','Rahman Arikan','Ray Abes',
-  'Rumen Madev','Saleh Al Assaf','Samuel Takyi','Stephen England','Tarindu Amarasekera','William Stiehm'
-]
+const STAFF_BY_STATION: Record<string, { mechanics: string[]; certifiers: string[] }> = {
+  JFK: {
+    mechanics: [
+      'Alan Larmour','ALLEN BARKER','Andreas Leuschner','Angel Angelov','Anthony D\'Erasmo','Ari Portugal','Brandon Pareja Castanc',
+      'Craig Bowles','Fahim Abrar','Gabriel Torres','Garfield Lamont','Hassan Ahmad','Ian Richards','Jordan Iordanov','Jason Davies',
+      'Kana Balasingam','Mark Ferrel','Mike Hamarsha','Naresh Dindiall','Nidal Hajouj','Nikolas Dundon','Rahman Arikan','Ray Abes',
+      'Rumen Madev','Saleh Al Assaf','Samuel Takyi','Stephen England','Tarindu Amarasekera','William Stiehm'
+    ],
+    certifiers: [
+      'Alan Larmour','Anthony D\'Erasmo','Jason Davies','Mark Ferrel','Mike Hamarsha','Rahman Arikan','Ray Abes',
+      'Saleh Al Assaf','Samuel Takyi','Stephen England','Tarindu Amarasekera','William Stiehm'
+    ]
+  }
+}
 
 const PLANNED: Omit<Flight, 'key' | 'reg' | 'status'>[] = [
   { airline: 'EI', flight: 'EI105/104', eta: '1455', std: '1800', aircraftType: 'A330' },
@@ -421,11 +429,23 @@ export default function App() {
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
   }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache])
 
+  const stationStaff = STAFF_BY_STATION[stationCode] || { mechanics: [], certifiers: [] }
+
   const staffRoster = useMemo(() => {
     const uploaded = activity.staff.map((s) => s.name)
     const manual = manualStaff.split('\n').map((x) => x.trim()).filter(Boolean)
-    return Array.from(new Set([...DEFAULT_STAFF, ...uploaded, ...manual])).sort()
-  }, [activity.staff, manualStaff])
+    return Array.from(new Set([...stationStaff.mechanics, ...stationStaff.certifiers, ...uploaded, ...manual])).sort()
+  }, [activity.staff, manualStaff, stationCode])
+
+  const certifierOptions = useMemo(() => {
+    const uploaded = activity.staff.filter((s) => s.role === 'Certifier').map((s) => s.name)
+    return Array.from(new Set([...stationStaff.certifiers, ...uploaded])).sort()
+  }, [activity.staff, stationCode])
+
+  const mechanicOptions = useMemo(() => {
+    const uploaded = activity.staff.filter((s) => s.role === 'Mechanic').map((s) => s.name)
+    return Array.from(new Set([...stationStaff.mechanics, ...uploaded])).sort()
+  }, [activity.staff, stationCode])
 
   const setAssign = (flightKey: string, field: 'certifier' | 'mechanic', value: string) => {
     setAssignments((prev) => ({ ...prev, [flightKey]: { ...prev[flightKey], [field]: value } }))
@@ -638,13 +658,13 @@ export default function App() {
                   <td>
                     <select value={a.certifier || ''} onChange={(e) => setAssign(f.key, 'certifier', e.target.value)}>
                       <option value="">Assign…</option>
-                      {staffRoster.map((s) => <option key={`c-${s}`} value={s}>{s}</option>)}
+                      {certifierOptions.map((s) => <option key={`c-${s}`} value={s}>{s}</option>)}
                     </select>
                   </td>
                   <td>
                     <select value={a.mechanic || ''} onChange={(e) => setAssign(f.key, 'mechanic', e.target.value)}>
                       <option value="">Assign…</option>
-                      {staffRoster.map((s) => <option key={`m-${s}`} value={s}>{s}</option>)}
+                      {mechanicOptions.map((s) => <option key={`m-${s}`} value={s}>{s}</option>)}
                     </select>
                   </td>
                 </tr>
