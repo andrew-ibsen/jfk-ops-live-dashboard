@@ -260,6 +260,16 @@ function normalizeLiveToken(callsign: string) {
   return `${p}${num}`
 }
 
+function mapEnrichmentStatus(s?: string): LiveStage | undefined {
+  const v = String(s || '').toLowerCase()
+  if (!v) return undefined
+  if (v.includes('land') || v.includes('arriv')) return 'arrived'
+  if (v.includes('depart') || v.includes('takeoff')) return 'departed'
+  if (v.includes('active') || v.includes('en-route') || v.includes('enroute') || v.includes('air')) return 'airborne'
+  if (v.includes('sched')) return 'scheduled'
+  return undefined
+}
+
 async function fetchEnrichment(stationCode: string) {
   const res = await fetch(`/api/enrichment?station=${encodeURIComponent(stationCode)}`)
   const json = await res.json().catch(() => ({}))
@@ -267,6 +277,7 @@ async function fetchEnrichment(stationCode: string) {
     flight: String(r?.flight?.iata || '').toUpperCase(),
     reg: String(r?.aircraft?.registration || ''),
     type: String(r?.aircraft?.iata || r?.aircraft?.icao || ''),
+    status: String(r?.flight_status || '')
   }))
   return { rows, meta: json?.meta || { ok: res.ok, rows: rows.length, reason: res.ok ? 'ok' : `http_${res.status}` } }
 }
@@ -275,7 +286,8 @@ export default function App() {
   const [activity, setActivity] = useState<{ date?: string; flights: Flight[]; staff: Staff[]; suggestedAssignments?: Assignments }>({ flights: [], staff: [] })
   const [stationCode, setStationCode] = useState('JFK')
   const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: LiveStage }>>([])
-  const [enrichment, setEnrichment] = useState<Array<{ flight: string; reg: string; type: string }>>([])
+  const liveCacheRef = useRef<Map<string, { callsign: string; hex: string; status: LiveStage; seenAt: number }>>(new Map())
+  const [enrichment, setEnrichment] = useState<Array<{ flight: string; reg: string; type: string; status?: string }>>([])
   const [liveError, setLiveError] = useState('')
   const [feedHealth, setFeedHealth] = useState<any>(null)
   const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null)
@@ -319,6 +331,10 @@ export default function App() {
       if (hit) {
         if (e.reg) hit.reg = e.reg
         if (e.type) hit.aircraftType = e.type
+        if (!hit.status || hit.status === 'scheduled') {
+          const es = mapEnrichmentStatus(e.status)
+          if (es) hit.status = es
+        }
       }
     })
 
@@ -368,7 +384,15 @@ export default function App() {
           : Promise.resolve({ rows: [], meta: { ok: true, rows: enrichment.length, reason: 'cached' } })
       ])
 
-      if (os.rows.length) setLive(os.rows)
+      if (os.rows.length) {
+        const nowTs = Date.now()
+        os.rows.forEach((r) => liveCacheRef.current.set(r.callsign, { ...r, seenAt: nowTs }))
+        // keep last known OpenSky rows for 6 hours to avoid sudden blanks
+        for (const [k, v] of liveCacheRef.current.entries()) {
+          if (nowTs - v.seenAt > 6 * 60 * 60_000) liveCacheRef.current.delete(k)
+        }
+        setLive(Array.from(liveCacheRef.current.values()).map(({ seenAt, ...rest }) => rest))
+      }
       if (en.rows.length) setEnrichment(en.rows)
 
       if (shouldEnrich) {
