@@ -95,7 +95,7 @@ const JFK_BA_DAY_OVERRIDES: Record<string, { eta?: string; std?: string; gate?: 
   'BA173/112': { eta: '1521', std: '1915', gate: '20' },
   'BA177/174': { eta: '1658', std: '1950', gate: '16' },
   'BA115/116': { eta: '1810', std: '2105', gate: '14' },
-  'BA113/114': { eta: '2035', std: '2235', gate: '18' },
+  'BA113/114': { eta: '2035', std: '2235', gate: '18', note: 'cancelled' },
   'BA179/182': { eta: '2205', std: '0020', gate: '14' },
   'BA183/178': { eta: '2305', std: '0905', gate: '20' }
 }
@@ -529,6 +529,7 @@ export default function App() {
           if (o.eta) f.eta = o.eta
           if (o.std) f.std = o.std
           if (o.gate) f.gate = o.gate
+          if ((o.note || '').toLowerCase().includes('cancel')) f.status = 'cancelled'
         }
       }
 
