@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { STAFF_BY_STATION } from './stationStaff'
+import { STATION_AIRLINES } from './stationAirlines'
 
 type Staff = { name: string; role: 'Mechanic' | 'Certifier'; shift?: string; absence?: string }
 type LiveStage = 'scheduled' | 'airborne' | 'arrived' | 'landing' | 'departed' | 'taxi'
@@ -204,12 +205,12 @@ function ganttSegments(startMin: number, endMin: number) {
   ]
 }
 
-async function fetchOpenSky(station: Station) {
+async function fetchOpenSky(station: Station, allowedPrefixes: string[]) {
   const url = `/api/opensky?lamin=${station.bbox.lamin}&lomin=${station.bbox.lomin}&lamax=${station.bbox.lamax}&lomax=${station.bbox.lomax}`
   const res = await fetch(url)
   const json = await res.json().catch(() => ({}))
   const states = (json.states || []) as any[]
-  const prefixes = ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
+  const prefixes = allowedPrefixes.length ? allowedPrefixes : ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
   const rows = states
     .filter((s) => prefixes.some((p) => String(s[1] || '').trim().startsWith(p)))
     .map((s) => {
@@ -369,6 +370,7 @@ export default function App() {
   }, [])
 
   const station = STATIONS.find((s) => s.code === stationCode) || STATIONS[0]
+  const stationAirlinePrefixes = STATION_AIRLINES[stationCode] || ['BAW']
 
   const mergedFlights = useMemo(() => {
     const base = PLANNED.map((f, i) => ({ ...f, key: `${f.airline}-${f.flight}-${i}`, status: 'scheduled' as const }))
@@ -464,7 +466,7 @@ export default function App() {
       const shouldEnrich = now >= enrichmentNextAtRef.current
 
       const [os, en] = await Promise.all([
-        fetchOpenSky(station),
+        fetchOpenSky(station, stationAirlinePrefixes),
         shouldEnrich
           ? fetchEnrichment(station.code)
           : Promise.resolve({ rows: [], meta: { ok: true, rows: enrichment.length, reason: 'cached' } })
@@ -564,7 +566,7 @@ export default function App() {
           </select>
         </label>
         <label>
-          Daily Activity CSV
+          Daily Roster
           <div className="fileRow">
             <label className="fileBtn" htmlFor="daily-csv">Choose CSV</label>
             <span className="fileName">{dailyFileName}</span>
