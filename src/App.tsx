@@ -13,6 +13,8 @@ type Flight = {
   eta?: string
   std?: string
   reg?: string
+  terminal?: string
+  gate?: string
   status?: LiveStage
   aircraftType?: string
 }
@@ -332,7 +334,9 @@ async function fetchEnrichment(stationCode: string) {
     flight: String(r?.flight?.iata || '').toUpperCase(),
     reg: String(r?.aircraft?.registration || ''),
     type: String(r?.aircraft?.iata || r?.aircraft?.icao || ''),
-    status: String(r?.flight_status || '')
+    status: String(r?.flight_status || ''),
+    terminal: String(r?.arrival?.terminal || r?.departure?.terminal || ''),
+    gate: String(r?.arrival?.gate || r?.departure?.gate || '')
   }))
   return { rows, meta: json?.meta || { ok: res.ok, rows: rows.length, reason: res.ok ? 'ok' : `http_${res.status}` } }
 }
@@ -342,7 +346,7 @@ export default function App() {
   const [stationCode, setStationCode] = useState('JFK')
   const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: LiveStage }>>([])
   const liveCacheRef = useRef<Map<string, { callsign: string; hex: string; status: LiveStage; seenAt: number }>>(new Map())
-  const [enrichment, setEnrichment] = useState<Array<{ flight: string; reg: string; type: string; status?: string }>>([])
+  const [enrichment, setEnrichment] = useState<Array<{ flight: string; reg: string; type: string; status?: string; terminal?: string; gate?: string }>>([])
   const [enrichmentCache, setEnrichmentCache] = useState<EnrichmentCache>(() => {
     try { return JSON.parse(localStorage.getItem('ops-enrichment-cache') || '{}') } catch { return {} }
   })
@@ -420,6 +424,8 @@ export default function App() {
       if (hit) {
         if (e.reg) hit.reg = e.reg
         if (e.type) hit.aircraftType = e.type
+        if (e.terminal) hit.terminal = e.terminal
+        if (e.gate) hit.gate = e.gate
         if (!hit.status || hit.status === 'scheduled') {
           const es = mapEnrichmentStatus(e.status)
           if (es) hit.status = es
@@ -681,7 +687,7 @@ export default function App() {
         <table>
           <thead>
             <tr>
-              <th>Airline</th><th>Flight</th><th>A/C Reg</th><th>A/C Type</th><th>ETA</th><th>STD</th><th>Status</th><th>Certifier</th><th>Mechanic</th>
+              <th>Airline</th><th>Flight</th><th>A/C Reg</th><th>A/C Type</th><th>Terminal</th><th>Gate</th><th>ETA</th><th>STD</th><th>Status</th><th>Certifier</th><th>Mechanic</th>
             </tr>
           </thead>
           <tbody>
@@ -693,6 +699,8 @@ export default function App() {
                   <td>{f.flight}</td>
                   <td><span>{f.reg || '-'}</span> <button className="miniBtn" onClick={() => editReg(f.flight, f.reg)} title="Set manual registration">✎</button></td>
                   <td>{f.aircraftType || '-'}</td>
+                  <td>{f.terminal || '-'}</td>
+                  <td>{f.gate || '-'}</td>
                   <td>{normalizeTime(f.eta) || '-'}</td>
                   <td>{normalizeTime(f.std) || '-'}</td>
                   <td><span className={`status ${f.status || 'scheduled'}`}>{f.status || 'scheduled'}</span></td>
