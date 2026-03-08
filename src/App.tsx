@@ -570,6 +570,7 @@ export default function App() {
     const certifiers = [...stationStaffBase.certifiers]
     if (stationCode === 'JFK') {
       ;[
+        'Anthony Derasmo',
         'Devran Turegun',
         'William Stiehm',
         'Gabriel Torres',
