@@ -272,7 +272,7 @@ export default function App() {
         <label>
           Station
           <select value={stationCode} onChange={(e) => setStationCode(e.target.value)}>
-            {STATIONS.map((s) => <option key={s.code} value={s.code}>{s.code} — {s.name}</option>)}
+            {STATIONS.map((s) => <option key={s.code} value={s.code}>{s.code}</option>)}
           </select>
         </label>
         <label>
