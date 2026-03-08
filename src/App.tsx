@@ -569,7 +569,14 @@ export default function App() {
     const mechanics = [...stationStaffBase.mechanics]
     const certifiers = [...stationStaffBase.certifiers]
     if (stationCode === 'JFK') {
-      ;['Anthony Derasmo', "Anthony D'Erasmo"].forEach((n) => {
+      ;[
+        'Anthony Derasmo',
+        "Anthony D'Erasmo",
+        'Devran Turegun',
+        'William Stiehm',
+        'Gabriel Torres',
+        'Brandon Pareja'
+      ].forEach((n) => {
         if (!mechanics.includes(n)) mechanics.push(n)
         if (!certifiers.includes(n)) certifiers.push(n)
       })
