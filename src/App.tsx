@@ -222,9 +222,14 @@ function ganttSegments(startMin: number, endMin: number) {
   ]
 }
 
-async function fetchOpenSky(station: Station, allowedPrefixes: string[]) {
+function authHeaders(password?: string): Record<string, string> {
+  if (!password) return {}
+  return { 'x-ops-password': password }
+}
+
+async function fetchOpenSky(station: Station, allowedPrefixes: string[], password?: string) {
   const url = `/api/opensky?lamin=${station.bbox.lamin}&lomin=${station.bbox.lomin}&lamax=${station.bbox.lamax}&lomax=${station.bbox.lomax}`
-  const res = await fetch(url)
+  const res = await fetch(url, { headers: authHeaders(password) })
   const json = await res.json().catch(() => ({}))
   const states = (json.states || []) as any[]
   const prefixes = allowedPrefixes.length ? allowedPrefixes : ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
@@ -345,8 +350,8 @@ function mapEnrichmentStatus(s?: string): LiveStage | undefined {
   return undefined
 }
 
-async function fetchWeather(stationCode: string): Promise<WeatherSnapshot | null> {
-  const res = await fetch(`/api/weather?station=${encodeURIComponent(stationCode)}`)
+async function fetchWeather(stationCode: string, password?: string): Promise<WeatherSnapshot | null> {
+  const res = await fetch(`/api/weather?station=${encodeURIComponent(stationCode)}`, { headers: authHeaders(password) })
   if (!res.ok) return null
   const j = await res.json().catch(() => null as any)
   if (!j?.current_condition?.[0] || !j?.weather?.[0]?.hourly) return null
@@ -386,15 +391,15 @@ function weatherEmoji(desc?: string) {
   return '🌤️'
 }
 
-async function fetchRegByHex(hex: string) {
-  const res = await fetch(`/api/reglookup?hex=${encodeURIComponent(hex)}`)
+async function fetchRegByHex(hex: string, password?: string) {
+  const res = await fetch(`/api/reglookup?hex=${encodeURIComponent(hex)}`, { headers: authHeaders(password) })
   if (!res.ok) return ''
   const j = await res.json().catch(() => ({} as any))
   return String(j?.registration || '')
 }
 
-async function fetchEnrichment(stationCode: string) {
-  const res = await fetch(`/api/enrichment?station=${encodeURIComponent(stationCode)}`)
+async function fetchEnrichment(stationCode: string, password?: string) {
+  const res = await fetch(`/api/enrichment?station=${encodeURIComponent(stationCode)}`, { headers: authHeaders(password) })
   const json = await res.json().catch(() => ({}))
   const rows = ((json.data || []) as any[]).map((r) => ({
     flight: String(r?.flight?.iata || '').toUpperCase(),
@@ -438,6 +443,9 @@ export default function App() {
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
   const [dailyFileName, setDailyFileName] = useState('No file selected')
+  const [accessPassword, setAccessPassword] = useState(() => sessionStorage.getItem('ops-access-password') || '')
+  const [passwordInput, setPasswordInput] = useState('')
+  const [authError, setAuthError] = useState('')
   const [assignments, setAssignments] = useState<Assignments>(() => {
     try { return JSON.parse(localStorage.getItem('ops-assignments') || '{}') } catch { return {} }
   })
@@ -660,15 +668,16 @@ export default function App() {
   const nowPct = (nowMinutes / (24 * 60)) * 100
 
   const loadLive = async () => {
+    if (!accessPassword) return
     setLiveError('')
     try {
       const now = Date.now()
       const shouldEnrich = now >= enrichmentNextAtRef.current
 
       const [os, en] = await Promise.all([
-        fetchOpenSky(station, stationAirlinePrefixes),
+        fetchOpenSky(station, stationAirlinePrefixes, accessPassword),
         shouldEnrich
-          ? fetchEnrichment(station.code)
+          ? fetchEnrichment(station.code, accessPassword)
           : Promise.resolve({ rows: [], meta: { ok: true, rows: enrichment.length, reason: 'cached' } })
       ])
 
@@ -702,7 +711,7 @@ export default function App() {
           .slice(0, 4)
 
         if (unknownHex.length) {
-          const resolved = await Promise.all(unknownHex.map(async (hex) => ({ hex, reg: await fetchRegByHex(hex) })))
+          const resolved = await Promise.all(unknownHex.map(async (hex) => ({ hex, reg: await fetchRegByHex(hex, accessPassword) })))
           const hits = resolved.filter((x) => x.reg)
           if (hits.length) {
             setHexRegCache((prev) => {
@@ -737,6 +746,13 @@ export default function App() {
 
       setFeedHealth({ opensky: os.meta, enrichment: en.meta })
       setLastLiveUpdate(new Date())
+      const unauthorized = String(os.meta?.reason || '').includes('401') || String(en.meta?.reason || '').includes('401')
+      if (unauthorized) {
+        setAuthError('Password expired or invalid. Enter today\'s password.')
+        sessionStorage.removeItem('ops-access-password')
+        setAccessPassword('')
+        return
+      }
       if (!os.rows.length) setLiveError('OpenSky returned 0 matching rows this cycle. Using last known snapshot + schedule.')
       if (String(en.meta?.reason || '').includes('429')) {
         setLiveError('Enrichment API is rate-limited (429). Using cached reg/type and retrying later.')
@@ -756,18 +772,47 @@ export default function App() {
     loadLive()
     const id = setInterval(loadLive, 30000)
     return () => clearInterval(id)
-  }, [stationCode])
+  }, [stationCode, accessPassword])
 
   useEffect(() => {
     let active = true
     const loadWx = async () => {
-      const w = await fetchWeather(stationCode)
+      if (!accessPassword) return
+      const w = await fetchWeather(stationCode, accessPassword)
       if (active) setWeather(w)
     }
     loadWx()
     const id = setInterval(loadWx, 30 * 60_000)
     return () => { active = false; clearInterval(id) }
-  }, [stationCode])
+  }, [stationCode, accessPassword])
+
+  if (!accessPassword) {
+    return (
+      <div className="page" style={{ maxWidth: 560 }}>
+        <section className="panel">
+          <h2>Protected Dashboard Access</h2>
+          <p>Enter today’s password to unlock this dashboard.</p>
+          <label>
+            Daily Password
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="Enter current password"
+            />
+          </label>
+          {authError && <p style={{ color: '#ff9aa5' }}>{authError}</p>}
+          <button onClick={() => {
+            const v = passwordInput.trim()
+            if (!v) return
+            sessionStorage.setItem('ops-access-password', v)
+            setAccessPassword(v)
+            setAuthError('')
+          }}>Unlock</button>
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="page">
