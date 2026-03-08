@@ -385,11 +385,16 @@ export default function App() {
             const start = toMinutes(f.eta) ?? 0
             const end = toMinutes(f.std) ?? ((start + 60) % (24 * 60))
             const segs = ganttSegments(start, end)
+            const tooltip = `${f.airline} ${f.flight} | ARR ${normalizeTime(f.eta) || '--:--'} | DEP ${normalizeTime(f.std) || '--:--'} | TYPE ${f.aircraftType || 'TBD'} | REG ${f.reg || '-'}`
             return (
               <div key={`g-${f.key}`} className="gRow">
                 <span>{f.airline} {f.flight}</span>
                 <div className="gTrack">
-                  {segs.map((s, i) => <div key={i} className="gBar" style={{ left: `${s.left}%`, width: `${s.width}%` }} />)}
+                  {segs.map((s, i) => (
+                    <div key={i} className="gBar" title={tooltip} style={{ left: `${s.left}%`, width: `${s.width}%` }}>
+                      {i === 0 && s.width > 10 && <span className="gBarLabel">{f.aircraftType || 'TBD'}</span>}
+                    </div>
+                  ))}
                   <div className="nowLine" style={{ left: `${nowPct}%` }} />
                 </div>
               </div>
