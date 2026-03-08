@@ -498,7 +498,18 @@ export default function App() {
     return Array.from(map.values()).filter((f) => HANDLED_AIRLINES.includes(f.airline)).sort((a, b) => (toMinutes(a.eta) || 9999) - (toMinutes(b.eta) || 9999))
   }, [activity.flights, live, enrichment, enrichmentCache, hexRegCache, manualRegOverrides, manualTypeOverrides, manualGateOverrides, stationCode])
 
-  const stationStaff = STAFF_BY_STATION[stationCode] || { mechanics: [], certifiers: [] }
+  const stationStaffBase = STAFF_BY_STATION[stationCode] || { mechanics: [], certifiers: [] }
+  const stationStaff = useMemo(() => {
+    const mechanics = [...stationStaffBase.mechanics]
+    const certifiers = [...stationStaffBase.certifiers]
+    if (stationCode === 'JFK') {
+      ;['Anthony Derasmo', "Anthony D'Erasmo"].forEach((n) => {
+        if (!mechanics.includes(n)) mechanics.push(n)
+        if (!certifiers.includes(n)) certifiers.push(n)
+      })
+    }
+    return { mechanics, certifiers }
+  }, [stationCode, stationStaffBase])
 
   const staffRoster = useMemo(() => {
     const uploaded = activity.staff.map((s) => s.name)
@@ -508,13 +519,15 @@ export default function App() {
 
   const certifierOptions = useMemo(() => {
     const uploaded = activity.staff.filter((s) => s.role === 'Certifier').map((s) => s.name)
-    return Array.from(new Set([...stationStaff.certifiers, ...uploaded])).sort()
-  }, [activity.staff, stationCode])
+    const manual = manualStaff.split('\n').map((x) => x.trim()).filter(Boolean)
+    return Array.from(new Set([...stationStaff.certifiers, ...uploaded, ...manual])).sort()
+  }, [activity.staff, stationCode, manualStaff, stationStaff])
 
   const mechanicOptions = useMemo(() => {
     const uploaded = activity.staff.filter((s) => s.role === 'Mechanic').map((s) => s.name)
-    return Array.from(new Set([...stationStaff.mechanics, ...uploaded])).sort()
-  }, [activity.staff, stationCode])
+    const manual = manualStaff.split('\n').map((x) => x.trim()).filter(Boolean)
+    return Array.from(new Set([...stationStaff.mechanics, ...uploaded, ...manual])).sort()
+  }, [activity.staff, stationCode, manualStaff, stationStaff])
 
   const setAssign = (flightKey: string, field: 'certifier' | 'mechanic', value: string) => {
     setAssignments((prev) => ({ ...prev, [flightKey]: { ...prev[flightKey], [field]: value, station: stationCode } }))
