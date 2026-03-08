@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import { STAFF_BY_STATION } from './stationStaff'
 
 type Staff = { name: string; role: 'Mechanic' | 'Certifier'; shift?: string; absence?: string }
 type LiveStage = 'scheduled' | 'airborne' | 'arrived' | 'landing' | 'departed' | 'taxi'
@@ -80,21 +81,6 @@ const STATIONS: Station[] = [
 ]
 
 const HANDLED_AIRLINES = ['BA', 'EI', 'IB', 'LL', 'AY', 'QF', 'NZ', 'NO', 'Z0', 'NH', 'JL']
-
-const STAFF_BY_STATION: Record<string, { mechanics: string[]; certifiers: string[] }> = {
-  JFK: {
-    mechanics: [
-      'Alan Larmour','ALLEN BARKER','Andreas Leuschner','Angel Angelov','Anthony D\'Erasmo','Ari Portugal','Brandon Pareja Castanc',
-      'Craig Bowles','Fahim Abrar','Gabriel Torres','Garfield Lamont','Hassan Ahmad','Ian Richards','Jordan Iordanov','Jason Davies',
-      'Kana Balasingam','Mark Ferrel','Mike Hamarsha','Naresh Dindiall','Nidal Hajouj','Nikolas Dundon','Rahman Arikan','Ray Abes',
-      'Rumen Madev','Saleh Al Assaf','Samuel Takyi','Stephen England','Tarindu Amarasekera','William Stiehm'
-    ],
-    certifiers: [
-      'Alan Larmour','Anthony D\'Erasmo','Jason Davies','Mark Ferrel','Mike Hamarsha','Rahman Arikan','Ray Abes',
-      'Saleh Al Assaf','Samuel Takyi','Stephen England','Tarindu Amarasekera','William Stiehm'
-    ]
-  }
-}
 
 const PLANNED: Omit<Flight, 'key' | 'reg' | 'status'>[] = [
   { airline: 'EI', flight: 'EI105/104', eta: '1455', std: '1800', aircraftType: 'A330' },
@@ -739,3 +725,4 @@ export default function App() {
     </div>
   )
 }
+
