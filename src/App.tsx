@@ -200,18 +200,11 @@ function ganttSegments(startMin: number, endMin: number) {
 }
 
 async function fetchOpenSky(station: Station) {
-  const base = `https://opensky-network.org/api/states/all?lamin=${station.bbox.lamin}&lomin=${station.bbox.lomin}&lamax=${station.bbox.lamax}&lomax=${station.bbox.lomax}`
-  const urls = [base, `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`]
-  let json: any = null
-  for (const url of urls) {
-    try {
-      const res = await fetch(url)
-      if (!res.ok) continue
-      json = await res.json()
-      if (json?.states) break
-    } catch {}
-  }
-  if (!json?.states) throw new Error('OpenSky fetch failed or blocked (CORS/rate limit)')
+  const url = `/api/opensky?lamin=${station.bbox.lamin}&lomin=${station.bbox.lomin}&lamax=${station.bbox.lamax}&lomax=${station.bbox.lomax}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('OpenSky proxy fetch failed')
+  const json = await res.json()
+  if (!json?.states) throw new Error('OpenSky states unavailable')
   const states = (json.states || []) as any[]
   const prefixes = ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
   return states
@@ -237,25 +230,16 @@ function primaryFlightToken(flight: string) {
   return (flight.split('/')[0] || '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
 }
 
-async function fetchEnrichment(stationCode: string, key: string) {
-  if (!key) return [] as any[]
-  const base = `https://api.aviationstack.com/v1/flights?access_key=${encodeURIComponent(key)}&arr_iata=${encodeURIComponent(stationCode)}&limit=100`
-  const urls = [base, `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`]
-  for (const url of urls) {
-    try {
-      const res = await fetch(url)
-      if (!res.ok) continue
-      const json = await res.json()
-      const rows = (json.data || []) as any[]
-      if (!rows.length) continue
-      return rows.map((r) => ({
-        flight: String(r?.flight?.iata || '').toUpperCase(),
-        reg: String(r?.aircraft?.registration || ''),
-        type: String(r?.aircraft?.iata || r?.aircraft?.icao || ''),
-      }))
-    } catch {}
-  }
-  return [] as any[]
+async function fetchEnrichment(stationCode: string) {
+  const res = await fetch(`/api/enrichment?station=${encodeURIComponent(stationCode)}`)
+  if (!res.ok) return [] as any[]
+  const json = await res.json()
+  const rows = (json.data || []) as any[]
+  return rows.map((r) => ({
+    flight: String(r?.flight?.iata || '').toUpperCase(),
+    reg: String(r?.aircraft?.registration || ''),
+    type: String(r?.aircraft?.iata || r?.aircraft?.icao || ''),
+  }))
 }
 
 export default function App() {
@@ -268,7 +252,6 @@ export default function App() {
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
   const [dailyFileName, setDailyFileName] = useState('No file selected')
-  const enrichKey = (import.meta as any).env?.VITE_AVIATIONSTACK_KEY || ''
   const [assignments, setAssignments] = useState<Assignments>(() => {
     try { return JSON.parse(localStorage.getItem('ops-assignments') || '{}') } catch { return {} }
   })
@@ -346,7 +329,7 @@ export default function App() {
     try {
       const [liveRows, enrichRows] = await Promise.all([
         fetchOpenSky(station),
-        fetchEnrichment(station.code, enrichKey)
+        fetchEnrichment(station.code)
       ])
       setLive(liveRows)
       setEnrichment(enrichRows)
