@@ -268,14 +268,13 @@ export default function App() {
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
   const [dailyFileName, setDailyFileName] = useState('No file selected')
-  const [enrichKey, setEnrichKey] = useState(() => localStorage.getItem('aviationstack-key') || '')
+  const enrichKey = (import.meta as any).env?.VITE_AVIATIONSTACK_KEY || ''
   const [assignments, setAssignments] = useState<Assignments>(() => {
     try { return JSON.parse(localStorage.getItem('ops-assignments') || '{}') } catch { return {} }
   })
   const [ganttUserFilter, setGanttUserFilter] = useState('')
 
   useEffect(() => { localStorage.setItem('ops-assignments', JSON.stringify(assignments)) }, [assignments])
-  useEffect(() => { localStorage.setItem('aviationstack-key', enrichKey) }, [enrichKey])
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000)
     return () => clearInterval(t)
@@ -408,11 +407,6 @@ export default function App() {
           Manual Staff Add (one per line)
           <textarea rows={4} value={manualStaff} onChange={(e) => setManualStaff(e.target.value)} placeholder="Add extra certifiers/mechanics..." />
         </label>
-        <label>
-          Enrichment API Key (optional, Aviationstack free)
-          <input value={enrichKey} onChange={(e) => setEnrichKey(e.target.value)} placeholder="paste key to improve Reg/Type" />
-        </label>
-        <button onClick={loadLive}>Refresh ADS-B (OpenSky)</button>
       </section>
 
       <section className="panel stats">
