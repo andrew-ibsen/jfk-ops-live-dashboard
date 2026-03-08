@@ -288,11 +288,6 @@ function defaultAircraftTypeForFlight(stationCode: string, airline: string) {
   return 'B787/B772/B773/A350'
 }
 
-function isJfkCertifierRole(name: string) {
-  const n = String(name || '').toLowerCase()
-  return n.includes('smm') || n.includes('dmm') || n.includes('maintenance rep')
-}
-
 function normalizeRegByAirline(airline: string, reg?: string) {
   const a = airline.toUpperCase()
   const prefixMap: Record<string, string> = {
@@ -594,32 +589,17 @@ export default function App() {
     return Array.from(new Set([...stationStaff.mechanics, ...stationStaff.certifiers, ...uploaded, ...manual])).sort()
   }, [activity.staff, manualStaff, stationCode])
 
-  const uploadedCertifiers = useMemo(() => {
-    return activity.staff.filter((s) => s.role === 'Certifier').map((s) => s.name)
-  }, [activity.staff])
-
   const certifierOptions = useMemo(() => {
+    const uploaded = activity.staff.filter((s) => s.role === 'Certifier').map((s) => s.name)
     const manual = manualStaff.split('\n').map((x) => x.trim()).filter(Boolean)
-    let pool = Array.from(new Set([...stationStaff.certifiers, ...uploadedCertifiers, ...manual])).sort()
-
-    if (stationCode === 'JFK') {
-      pool = pool.filter((n) => isJfkCertifierRole(n) || uploadedCertifiers.includes(n))
-    }
-
-    return pool
-  }, [stationCode, manualStaff, stationStaff, uploadedCertifiers])
+    return Array.from(new Set([...stationStaff.certifiers, ...uploaded, ...manual])).sort()
+  }, [activity.staff, stationCode, manualStaff, stationStaff])
 
   const mechanicOptions = useMemo(() => {
-    const uploadedMechanics = activity.staff.filter((s) => s.role === 'Mechanic').map((s) => s.name)
+    const uploaded = activity.staff.filter((s) => s.role === 'Mechanic').map((s) => s.name)
     const manual = manualStaff.split('\n').map((x) => x.trim()).filter(Boolean)
-    return Array.from(new Set([
-      ...stationStaff.mechanics,
-      ...stationStaff.certifiers,
-      ...uploadedMechanics,
-      ...uploadedCertifiers,
-      ...manual
-    ])).sort()
-  }, [activity.staff, manualStaff, stationStaff, uploadedCertifiers])
+    return Array.from(new Set([...stationStaff.mechanics, ...uploaded, ...manual])).sort()
+  }, [activity.staff, stationCode, manualStaff, stationStaff])
 
   const setAssign = (flightKey: string, field: 'certifier' | 'mechanic', value: string) => {
     setAssignments((prev) => ({ ...prev, [flightKey]: { ...prev[flightKey], [field]: value, station: stationCode } }))
@@ -939,9 +919,7 @@ export default function App() {
                   <td>
                     <select value={a.certifier || ''} onChange={(e) => setAssign(f.key, 'certifier', e.target.value)}>
                       <option value="">Assign…</option>
-                      {certifierOptions
-                        .filter((s) => !(stationCode === 'JFK' && f.airline !== 'BA' && s.toLowerCase().includes('maintenance rep')))
-                        .map((s) => <option key={`c-${s}`} value={s}>{s}</option>)}
+                      {certifierOptions.map((s) => <option key={`c-${s}`} value={s}>{s}</option>)}
                     </select>
                   </td>
                   <td>
