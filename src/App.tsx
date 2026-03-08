@@ -248,12 +248,18 @@ function flightTokens(flight: string) {
   return [`${p}${Number(m[2])}`, `${p}${Number(m[3])}`]
 }
 
+function terminalNumber(v?: string) {
+  const s = String(v || '').toUpperCase().trim()
+  const m = s.match(/\d+/)
+  return m ? m[0] : ''
+}
+
 function defaultTerminalForAirline(airline: string) {
   const a = airline.toUpperCase()
   // Business rules provided by ops (subject to annual airport changes).
-  if (a === 'NZ') return 'T1'
-  if (a === 'NH' || a === 'EI' || a === 'NO' || a === 'Z0') return 'T7'
-  if (['BA', 'IB', 'LL', 'AY', 'QF', 'JL'].includes(a)) return 'T8'
+  if (a === 'NZ') return '1'
+  if (a === 'NH' || a === 'EI' || a === 'NO' || a === 'Z0') return '7'
+  if (['BA', 'IB', 'LL', 'AY', 'QF', 'JL'].includes(a)) return '8'
   return ''
 }
 
@@ -438,7 +444,7 @@ export default function App() {
       if (hit) {
         if (e.reg) hit.reg = e.reg
         if (e.type) hit.aircraftType = e.type
-        if (e.terminal) hit.terminal = e.terminal
+        if (e.terminal) hit.terminal = terminalNumber(e.terminal) || e.terminal
         if (e.gate) hit.gate = e.gate
         if (!hit.status || hit.status === 'scheduled') {
           const es = mapEnrichmentStatus(e.status)
@@ -732,7 +738,7 @@ export default function App() {
                   <td>{f.flight}</td>
                   <td><span>{f.reg || '-'}</span> <button className="miniBtn" onClick={() => editReg(f.flight, f.reg)} title="Set manual registration">✎</button></td>
                   <td>{f.aircraftType || '-'}</td>
-                  <td>{f.terminal || '-'}</td>
+                  <td>{terminalNumber(f.terminal) || f.terminal || '-'}</td>
                   <td>{f.gate || '-'}</td>
                   <td>{normalizeTime(f.eta) || '-'}</td>
                   <td>{normalizeTime(f.std) || '-'}</td>
