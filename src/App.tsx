@@ -556,17 +556,14 @@ export default function App() {
         </label>
         <div className="weatherBox inlineWeather">
           <h3>{stationCode} Weather</h3>
-          <div className="wxNow">
+          <div className="wxCompact">
             <span className="wxIcon" title={weather?.nowDesc || 'Weather'}>{weatherEmoji(weather?.nowDesc)}</span>
-            <div>
-              <div>Now: {weather ? `${weather.tempC}°C` : '—'}</div>
-              <small>{weather?.nowDesc || '—'}</small>
-            </div>
+            <span><b>Now:</b> {weather ? `${weather.tempC}°C` : '—'} {weather?.nowDesc || ''}</span>
+            <span><b>Precip:</b> {weather ? `${weather.precipMm} mm` : '—'}</span>
+            <span><b>AM</b> {weather?.morning || '—'}</span>
+            <span><b>PM</b> {weather?.afternoon || '—'}</span>
+            <span><b>EVE</b> {weather?.evening || '—'}</span>
           </div>
-          <div>Precip: {weather ? `${weather.precipMm} mm` : '—'}</div>
-          <small>AM: {weather?.morning || '—'}</small>
-          <small>PM: {weather?.afternoon || '—'}</small>
-          <small>EVE: {weather?.evening || '—'}</small>
         </div>
       </section>
 
