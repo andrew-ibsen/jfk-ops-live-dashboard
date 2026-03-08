@@ -441,18 +441,9 @@ export default function App() {
   }
 
   const assignedUsers = useMemo(() => {
-    const set = new Set<string>()
-    Object.values(assignments)
-      .filter((a) => !a.station || a.station === stationCode)
-      .forEach((a) => {
-        if (a.certifier) set.add(a.certifier)
-        if (a.mechanic) set.add(a.mechanic)
-      })
-    // ensure station list is always available even before assignments
-    certifierOptions.forEach((u) => set.add(u))
-    mechanicOptions.forEach((u) => set.add(u))
-    return Array.from(set).sort()
-  }, [assignments, stationCode, certifierOptions, mechanicOptions])
+    // Filter-by-user should only list users relevant to current station board context.
+    return Array.from(new Set([...certifierOptions, ...mechanicOptions])).sort()
+  }, [certifierOptions, mechanicOptions])
 
   const ganttFlights = useMemo(() => {
     if (!ganttUserFilter) return mergedFlights
