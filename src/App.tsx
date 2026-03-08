@@ -374,7 +374,8 @@ export default function App() {
       if (shouldEnrich) {
         const reason = String(en.meta?.reason || '')
         const rateLimited = reason.includes('429')
-        enrichmentNextAtRef.current = now + (rateLimited ? 15 * 60_000 : 5 * 60_000)
+        // User requested max ~3 calls/day on free tier.
+        enrichmentNextAtRef.current = now + (rateLimited ? 12 * 60 * 60_000 : 8 * 60 * 60_000)
       }
 
       setFeedHealth({ opensky: os.meta, enrichment: en.meta })
@@ -450,7 +451,7 @@ export default function App() {
         <span><b>Roster pool:</b> {staffRoster.length}</span>
         <span><b>ADS-B:</b> auto refresh every 30s{lastLiveUpdate ? ` (last ${lastLiveUpdate.toLocaleTimeString()})` : ''}</span>
         <span><b>OpenSky:</b> <span className={`feed ${feedHealth?.opensky?.ok ? 'ok' : 'bad'}`}>{feedHealth?.opensky?.ok ? `OK (${feedHealth?.opensky?.rows})` : `Issue (${feedHealth?.opensky?.reason || 'n/a'})`}</span></span>
-        <span><b>Enrichment:</b> <span className={`feed ${feedHealth?.enrichment?.ok ? 'ok' : 'bad'}`}>{feedHealth?.enrichment?.ok ? `OK (${feedHealth?.enrichment?.rows})` : `Issue (${feedHealth?.enrichment?.reason || 'n/a'})`}</span></span>
+        <span><b>Enrichment (≤3/day):</b> <span className={`feed ${feedHealth?.enrichment?.ok ? 'ok' : 'bad'}`}>{feedHealth?.enrichment?.ok ? `OK (${feedHealth?.enrichment?.rows})` : `Issue (${feedHealth?.enrichment?.reason || 'n/a'})`}</span></span>
       </section>
 
       {liveError && <section className="panel warn">{liveError}</section>}

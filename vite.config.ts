@@ -63,23 +63,20 @@ export default defineConfig(({ mode }) => {
 
               const u = new URL(req.url || '', 'http://localhost')
               const station = u.searchParams.get('station') || 'JFK'
-              const mk = (kind: 'arr_iata' | 'dep_iata') =>
-                `https://api.aviationstack.com/v1/flights?access_key=${encodeURIComponent(aviationstackKey)}&${kind}=${encodeURIComponent(station)}&limit=100`
-
-              const [arrResp, depResp] = await Promise.all([fetchWithTimeout(mk('arr_iata')), fetchWithTimeout(mk('dep_iata'))])
-              const arrJson: any = arrResp.ok ? await arrResp.json() : { data: [] }
-              const depJson: any = depResp.ok ? await depResp.json() : { data: [] }
-              const merged = [...(arrJson.data || []), ...(depJson.data || [])]
+              const url = `https://api.aviationstack.com/v1/flights?access_key=${encodeURIComponent(aviationstackKey)}&arr_iata=${encodeURIComponent(station)}&limit=100`
+              const resp = await fetchWithTimeout(url)
+              const json: any = resp.ok ? await resp.json() : { data: [] }
+              const rows = json.data || []
 
               lastHealth.enrichment = {
-                ok: arrResp.ok || depResp.ok,
-                rows: merged.length,
-                reason: (arrResp.ok || depResp.ok) ? 'ok' : `arr_${arrResp.status}_dep_${depResp.status}`
+                ok: resp.ok,
+                rows: rows.length,
+                reason: resp.ok ? 'ok' : `http_${resp.status}`
               }
 
               res.setHeader('Content-Type', 'application/json')
               res.statusCode = 200
-              res.end(JSON.stringify({ data: merged, meta: lastHealth.enrichment }))
+              res.end(JSON.stringify({ data: rows, meta: lastHealth.enrichment }))
             } catch (e: any) {
               lastHealth.enrichment = { ok: false, rows: 0, reason: e?.name === 'AbortError' ? 'timeout' : (e?.message || 'proxy_error') }
               res.statusCode = 500
