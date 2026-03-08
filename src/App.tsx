@@ -356,7 +356,13 @@ export default function App() {
       </section>
 
       <section className="panel">
-        <h2>Station Flight Gantt (24h)</h2>
+        <div className="ganttHeader">
+          <h2>Station Flight Gantt (24h)</h2>
+          <div className="ganttClocks">
+            <span>Local: {clock.toLocaleTimeString()}</span>
+            <span>UTC: {clock.toUTCString().split(' ')[4]}Z</span>
+          </div>
+        </div>
         <div className="scaleWrap">
           <span className="scaleLabelPad" />
           <div className="scale">
