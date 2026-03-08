@@ -482,10 +482,25 @@ export default function App() {
         const liveRows = Array.from(liveCacheRef.current.values()).map(({ seenAt, ...rest }) => rest)
         setLive(liveRows)
 
-        // Free-source add-on: resolve a few missing ICAO24->registration mappings per cycle.
-        const unknownHex = Array.from(new Set(liveRows.map((r: any) => r.hex).filter(Boolean)))
+        // Prioritize lookup attempts for flights currently blank on registration.
+        const blankFlightTokens = new Set(
+          mergedFlights
+            .filter((f) => !f.reg)
+            .flatMap((f) => flightTokens(f.flight))
+        )
+
+        const prioritizedHex = liveRows
+          .filter((r: any) => {
+            const t = normalizeLiveToken(r.callsign)
+            return t && blankFlightTokens.has(t)
+          })
+          .map((r: any) => r.hex)
+
+        const fallbackHex = liveRows.map((r: any) => r.hex)
+        const unknownHex = Array.from(new Set([...prioritizedHex, ...fallbackHex].filter(Boolean)))
           .filter((hex) => !hexRegCache[hex])
           .slice(0, 4)
+
         if (unknownHex.length) {
           const resolved = await Promise.all(unknownHex.map(async (hex) => ({ hex, reg: await fetchRegByHex(hex) })))
           const hits = resolved.filter((x) => x.reg)
