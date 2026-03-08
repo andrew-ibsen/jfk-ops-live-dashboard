@@ -198,7 +198,7 @@ async function fetchOpenSky(station: Station) {
   const prefixes = ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
   return states
     .filter((s) => prefixes.some((p) => String(s[1] || '').trim().startsWith(p)))
-    .map((s) => ({ callsign: String(s[1] || '').trim(), reg: String(s[0] || ''), status: (s[8] ? 'airborne' : 'arrived') as 'airborne' | 'arrived' }))
+    .map((s) => ({ callsign: String(s[1] || '').trim(), hex: String(s[0] || '').toUpperCase(), status: (s[8] ? 'airborne' : 'arrived') as 'airborne' | 'arrived' }))
 }
 
 function primaryFlightToken(flight: string) {
@@ -208,7 +208,7 @@ function primaryFlightToken(flight: string) {
 export default function App() {
   const [activity, setActivity] = useState<{ date?: string; flights: Flight[]; staff: Staff[]; suggestedAssignments?: Assignments }>({ flights: [], staff: [] })
   const [stationCode, setStationCode] = useState('JFK')
-  const [live, setLive] = useState<Array<{ callsign: string; reg: string; status: 'airborne' | 'arrived' }>>([])
+  const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: 'airborne' | 'arrived' }>>([])
   const [liveError, setLiveError] = useState('')
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
@@ -239,7 +239,8 @@ export default function App() {
       const match = Array.from(byToken.entries()).find(([token]) => lf.callsign.includes(token.replace(/^[A-Z]+/, '')) || lf.callsign.includes(token))
       if (match) {
         const hit = match[1]
-        hit.reg = lf.reg
+        // OpenSky state feed returns ICAO24 hex, not tail registration.
+        // Keep registration from schedule/source file; only update live status here.
         hit.status = lf.status
       }
     })
