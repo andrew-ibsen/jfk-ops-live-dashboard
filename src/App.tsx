@@ -55,7 +55,7 @@ const STATIONS: Station[] = [
   { code: 'HYD', name: 'HYD', bbox: DEFAULT_BBOX },
   { code: 'IAD', name: 'IAD', bbox: DEFAULT_BBOX },
   { code: 'IAH', name: 'IAH', bbox: DEFAULT_BBOX },
-  { code: 'JFK', name: 'JFK', bbox: { lamin: 40.2, lomin: -74.3, lamax: 41.1, lomax: -73.2 } },
+  { code: 'JFK', name: 'JFK', bbox: { lamin: 39.7, lomin: -75.2, lamax: 41.8, lomax: -72.5 } },
   { code: 'LAS', name: 'LAS', bbox: DEFAULT_BBOX },
   { code: 'LAX', name: 'LAX', bbox: DEFAULT_BBOX },
   { code: 'LGW', name: 'LGW', bbox: { lamin: 51.0, lomin: -0.4, lamax: 51.3, lomax: 0.1 } },
@@ -386,7 +386,22 @@ export default function App() {
 
     live.forEach((lf) => {
       const token = normalizeLiveToken(lf.callsign)
-      const hit = byToken.get(token)
+      let hit = byToken.get(token)
+
+      // Fallback: fuzzy airline+number matching for odd callsign formats (e.g. zero-padding/variant suffixes)
+      if (!hit) {
+        const m = token.match(/^([A-Z]{2})(\d{1,4})$/)
+        if (m) {
+          const airline = m[1]
+          const num = Number(m[2])
+          hit = Array.from(map.values()).find((f) => {
+            const legs = flightTokens(f.flight)
+            if (!legs.length) return false
+            return legs.some((l) => l.startsWith(airline) && Number(l.replace(/^[A-Z]+/, '')) === num)
+          })
+        }
+      }
+
       if (hit) {
         hit.status = lf.status
         const hexReg = hexRegCache[lf.hex]?.reg
