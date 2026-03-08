@@ -373,7 +373,8 @@ export default function App() {
   const stationAirlinePrefixes = STATION_AIRLINES[stationCode] || ['BAW']
 
   const mergedFlights = useMemo(() => {
-    const base = PLANNED.map((f, i) => ({ ...f, key: `${f.airline}-${f.flight}-${i}`, status: 'scheduled' as const }))
+    const stationPlanned = stationCode === 'JFK' ? PLANNED : []
+    const base = stationPlanned.map((f, i) => ({ ...f, key: `${f.airline}-${f.flight}-${i}`, status: 'scheduled' as const }))
     const map = new Map(base.map((f) => [f.key, f as Flight]))
 
     activity.flights.forEach((f) => map.set(f.key, { ...f, aircraftType: map.get(f.key)?.aircraftType }))
@@ -548,6 +549,11 @@ export default function App() {
   }
 
   useEffect(() => {
+    // Station switch should present station-specific board/gantt context.
+    setActivity({ flights: [], staff: [] })
+    setDailyFileName('No file selected')
+    setGanttUserFilter('')
+
     loadLive()
     const id = setInterval(loadLive, 30000)
     return () => clearInterval(id)
