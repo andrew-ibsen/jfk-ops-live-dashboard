@@ -264,6 +264,13 @@ function defaultTerminalForAirline(airline: string) {
   return ''
 }
 
+function defaultAircraftTypeForFlight(stationCode: string, airline: string) {
+  const a = airline.toUpperCase()
+  if (a !== 'BA') return ''
+  if (stationCode === 'JFK') return 'B787/B772/B773'
+  return 'B787/B772/B773/A350'
+}
+
 function normalizeLiveToken(callsign: string) {
   const raw = String(callsign || '').toUpperCase().replace(/\s+/g, '')
   const m = raw.match(/^([A-Z]{2,3})(0*\d{1,4})/)
@@ -473,6 +480,12 @@ export default function App() {
       if (!f.terminal) {
         const t = defaultTerminalForAirline(f.airline)
         if (t) f.terminal = t
+      }
+
+      // BA fleet mix default by station when type missing.
+      if (!f.aircraftType) {
+        const ty = defaultAircraftTypeForFlight(stationCode, f.airline)
+        if (ty) f.aircraftType = ty
       }
     })
 
