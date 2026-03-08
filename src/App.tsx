@@ -18,6 +18,14 @@ type Flight = {
 type Assignments = Record<string, { certifier?: string; mechanic?: string }>
 type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: number }>
 
+type WeatherSnapshot = {
+  tempC: string
+  precipMm: string
+  morning: string
+  afternoon: string
+  evening: string
+}
+
 type Station = { code: string; name: string; bbox: { lamin: number; lomin: number; lamax: number; lomax: number } }
 
 const DEFAULT_BBOX = { lamin: 40.2, lomin: -74.3, lamax: 41.1, lomax: -73.2 } // fallback until per-station bbox map is added
@@ -271,6 +279,34 @@ function mapEnrichmentStatus(s?: string): LiveStage | undefined {
   return undefined
 }
 
+async function fetchWeather(stationCode: string): Promise<WeatherSnapshot | null> {
+  const res = await fetch(`/api/weather?station=${encodeURIComponent(stationCode)}`)
+  if (!res.ok) return null
+  const j = await res.json().catch(() => null as any)
+  if (!j?.current_condition?.[0] || !j?.weather?.[0]?.hourly) return null
+
+  const cc = j.current_condition[0]
+  const hourly = j.weather[0].hourly as any[]
+  const pick = (target: number) => {
+    let best = hourly[0]
+    let bestDiff = Infinity
+    for (const h of hourly) {
+      const t = Number(h.time || 0)
+      const diff = Math.abs(t - target)
+      if (diff < bestDiff) { best = h; bestDiff = diff }
+    }
+    return `${best.weatherDesc?.[0]?.value || ''} ${best.tempC ? `${best.tempC}°C` : ''}`.trim()
+  }
+
+  return {
+    tempC: String(cc.temp_C || '-'),
+    precipMm: String(cc.precipMM || '0'),
+    morning: pick(900),
+    afternoon: pick(1500),
+    evening: pick(2100)
+  }
+}
+
 async function fetchEnrichment(stationCode: string) {
   const res = await fetch(`/api/enrichment?station=${encodeURIComponent(stationCode)}`)
   const json = await res.json().catch(() => ({}))
@@ -294,6 +330,7 @@ export default function App() {
   })
   const [liveError, setLiveError] = useState('')
   const [feedHealth, setFeedHealth] = useState<any>(null)
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null)
   const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null)
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
@@ -445,11 +482,32 @@ export default function App() {
     return () => clearInterval(id)
   }, [stationCode])
 
+  useEffect(() => {
+    let active = true
+    const loadWx = async () => {
+      const w = await fetchWeather(stationCode)
+      if (active) setWeather(w)
+    }
+    loadWx()
+    const id = setInterval(loadWx, 30 * 60_000)
+    return () => { active = false; clearInterval(id) }
+  }, [stationCode])
+
   return (
     <div className="page">
-      <header>
-        <h1>British Airways Line Maintenance Operational Dashboard — {stationCode}</h1>
-        <p>Single-file workflow: upload Daily Activity CSV, assign crews, visualize overlaps.</p>
+      <header className="topHeader">
+        <div>
+          <h1>British Airways Line Maintenance Operational Dashboard — {stationCode}</h1>
+          <p>Single-file workflow: upload Daily Activity CSV, assign crews, visualize overlaps.</p>
+        </div>
+        <div className="weatherBox">
+          <h3>{stationCode} Weather</h3>
+          <div>Now: {weather ? `${weather.tempC}°C` : '—'}</div>
+          <div>Precip: {weather ? `${weather.precipMm} mm` : '—'}</div>
+          <small>AM: {weather?.morning || '—'}</small>
+          <small>PM: {weather?.afternoon || '—'}</small>
+          <small>EVE: {weather?.evening || '—'}</small>
+        </div>
       </header>
 
       <section className="panel uploads">

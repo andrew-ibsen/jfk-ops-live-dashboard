@@ -85,6 +85,23 @@ export default defineConfig(({ mode }) => {
             }
           })
 
+          server.middlewares.use('/api/weather', async (req, res) => {
+            try {
+              const u = new URL(req.url || '', 'http://localhost')
+              const station = u.searchParams.get('station') || 'JFK'
+              const url = `https://wttr.in/${encodeURIComponent(station)}?format=j1`
+              const r = await fetchWithTimeout(url)
+              const txt = await r.text()
+              res.statusCode = r.ok ? 200 : 502
+              res.setHeader('Content-Type', 'application/json')
+              res.end(txt)
+            } catch (e: any) {
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: e?.message || 'weather proxy failed' }))
+            }
+          })
+
           server.middlewares.use('/api/health', (_req, res) => {
             res.statusCode = 200
             res.setHeader('Content-Type', 'application/json')
