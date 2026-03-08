@@ -9,6 +9,9 @@ header h1{margin:0}.panel{background:#0b1f49;border:1px solid #21478e;border-rad
 .uploads label{display:grid;gap:6px;font-size:.9rem}
 input,select,button,textarea{background:#102a61;color:#fff;border:1px solid #3a67bf;border-radius:8px;padding:8px}
 button{cursor:pointer;font-weight:600}.stats{display:flex;flex-wrap:wrap;gap:14px}
+.feed{padding:2px 8px;border-radius:999px;border:1px solid #5a86dd;font-size:.78rem}
+.feed.ok{background:#1c5f2a;border-color:#4acb6a}
+.feed.bad{background:#6b1f2a;border-color:#e66a7c}
 .fileRow{display:flex;gap:8px;align-items:center}
 .fileBtn{display:inline-block;background:#1d458f;color:#fff;border:1px solid #5f8deb;border-radius:8px;padding:8px 10px;cursor:pointer;white-space:nowrap}
 .fileName{font-size:.82rem;color:#c5d6fb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}

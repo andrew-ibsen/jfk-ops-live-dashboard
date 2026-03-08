@@ -202,18 +202,16 @@ function ganttSegments(startMin: number, endMin: number) {
 async function fetchOpenSky(station: Station) {
   const url = `/api/opensky?lamin=${station.bbox.lamin}&lomin=${station.bbox.lomin}&lamax=${station.bbox.lamax}&lomax=${station.bbox.lomax}`
   const res = await fetch(url)
-  if (!res.ok) throw new Error('OpenSky proxy fetch failed')
-  const json = await res.json()
-  if (!json?.states) throw new Error('OpenSky states unavailable')
+  const json = await res.json().catch(() => ({}))
   const states = (json.states || []) as any[]
   const prefixes = ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
-  return states
+  const rows = states
     .filter((s) => prefixes.some((p) => String(s[1] || '').trim().startsWith(p)))
     .map((s) => {
       const onGround = Boolean(s[8])
-      const velocity = Number(s[9] || 0) // m/s
-      const verticalRate = Number(s[11] || 0) // m/s
-      const geoAlt = Number(s[13] || s[7] || 0) // meters
+      const velocity = Number(s[9] || 0)
+      const verticalRate = Number(s[11] || 0)
+      const geoAlt = Number(s[13] || s[7] || 0)
 
       let status: LiveStage = 'scheduled'
       if (onGround && velocity > 7) status = 'taxi'
@@ -224,6 +222,8 @@ async function fetchOpenSky(station: Station) {
 
       return { callsign: String(s[1] || '').trim(), hex: String(s[0] || '').toUpperCase(), status }
     })
+
+  return { rows, meta: json?.meta || { ok: res.ok, rows: states.length, reason: res.ok ? 'ok' : `http_${res.status}` } }
 }
 
 function primaryFlightToken(flight: string) {
@@ -232,14 +232,13 @@ function primaryFlightToken(flight: string) {
 
 async function fetchEnrichment(stationCode: string) {
   const res = await fetch(`/api/enrichment?station=${encodeURIComponent(stationCode)}`)
-  if (!res.ok) return [] as any[]
-  const json = await res.json()
-  const rows = (json.data || []) as any[]
-  return rows.map((r) => ({
+  const json = await res.json().catch(() => ({}))
+  const rows = ((json.data || []) as any[]).map((r) => ({
     flight: String(r?.flight?.iata || '').toUpperCase(),
     reg: String(r?.aircraft?.registration || ''),
     type: String(r?.aircraft?.iata || r?.aircraft?.icao || ''),
   }))
+  return { rows, meta: json?.meta || { ok: res.ok, rows: rows.length, reason: res.ok ? 'ok' : `http_${res.status}` } }
 }
 
 export default function App() {
@@ -248,6 +247,7 @@ export default function App() {
   const [live, setLive] = useState<Array<{ callsign: string; hex: string; status: LiveStage }>>([])
   const [enrichment, setEnrichment] = useState<Array<{ flight: string; reg: string; type: string }>>([])
   const [liveError, setLiveError] = useState('')
+  const [feedHealth, setFeedHealth] = useState<any>(null)
   const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null)
   const [clock, setClock] = useState(new Date())
   const [manualStaff, setManualStaff] = useState('')
@@ -327,16 +327,19 @@ export default function App() {
   const loadLive = async () => {
     setLiveError('')
     try {
-      const [liveRows, enrichRows] = await Promise.all([
+      const [os, en] = await Promise.all([
         fetchOpenSky(station),
         fetchEnrichment(station.code)
       ])
-      setLive(liveRows)
-      setEnrichment(enrichRows)
+      if (os.rows.length) setLive(os.rows)
+      if (en.rows.length) setEnrichment(en.rows)
+      setFeedHealth({ opensky: os.meta, enrichment: en.meta })
       setLastLiveUpdate(new Date())
-      if (!liveRows.length) setLiveError('No live rows from OpenSky right now. Showing schedule + enrichment data.')
+      if (!os.rows.length) setLiveError('OpenSky returned 0 matching rows this cycle. Using last known snapshot + schedule.')
     }
-    catch { setLiveError('Live data limited right now (CORS/rate limits). Schedule still available.') }
+    catch {
+      setLiveError('Live data limited right now (CORS/rate limits). Using last known snapshot + schedule.')
+    }
   }
 
   useEffect(() => {
@@ -399,6 +402,8 @@ export default function App() {
         <span><b>Flights:</b> {mergedFlights.length}</span>
         <span><b>Roster pool:</b> {staffRoster.length}</span>
         <span><b>ADS-B:</b> auto refresh every 30s{lastLiveUpdate ? ` (last ${lastLiveUpdate.toLocaleTimeString()})` : ''}</span>
+        <span><b>OpenSky:</b> <span className={`feed ${feedHealth?.opensky?.ok ? 'ok' : 'bad'}`}>{feedHealth?.opensky?.ok ? `OK (${feedHealth?.opensky?.rows})` : `Issue (${feedHealth?.opensky?.reason || 'n/a'})`}</span></span>
+        <span><b>Enrichment:</b> <span className={`feed ${feedHealth?.enrichment?.ok ? 'ok' : 'bad'}`}>{feedHealth?.enrichment?.ok ? `OK (${feedHealth?.enrichment?.rows})` : `Issue (${feedHealth?.enrichment?.reason || 'n/a'})`}</span></span>
       </section>
 
       {liveError && <section className="panel warn">{liveError}</section>}
