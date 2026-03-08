@@ -21,6 +21,7 @@ type EnrichmentCache = Record<string, { reg?: string; type?: string; updatedAt: 
 type WeatherSnapshot = {
   tempC: string
   precipMm: string
+  nowDesc: string
   morning: string
   afternoon: string
   evening: string
@@ -301,10 +302,23 @@ async function fetchWeather(stationCode: string): Promise<WeatherSnapshot | null
   return {
     tempC: String(cc.temp_C || '-'),
     precipMm: String(cc.precipMM || '0'),
+    nowDesc: String(cc.weatherDesc?.[0]?.value || ''),
     morning: pick(900),
     afternoon: pick(1500),
     evening: pick(2100)
   }
+}
+
+function weatherEmoji(desc?: string) {
+  const d = String(desc || '').toLowerCase()
+  if (d.includes('thunder')) return '⛈️'
+  if (d.includes('snow') || d.includes('sleet') || d.includes('blizzard')) return '❄️'
+  if (d.includes('rain') || d.includes('drizzle') || d.includes('shower')) return '🌧️'
+  if (d.includes('fog') || d.includes('mist') || d.includes('haze') || d.includes('low vis')) return '🌫️'
+  if (d.includes('cloud') || d.includes('overcast')) return '☁️'
+  if (d.includes('clear night')) return '🌙'
+  if (d.includes('sun') || d.includes('clear')) return '☀️'
+  return '🌤️'
 }
 
 async function fetchEnrichment(stationCode: string) {
@@ -502,7 +516,13 @@ export default function App() {
         </div>
         <div className="weatherBox">
           <h3>{stationCode} Weather</h3>
-          <div>Now: {weather ? `${weather.tempC}°C` : '—'}</div>
+          <div className="wxNow">
+            <span className="wxIcon" title={weather?.nowDesc || 'Weather'}>{weatherEmoji(weather?.nowDesc)}</span>
+            <div>
+              <div>Now: {weather ? `${weather.tempC}°C` : '—'}</div>
+              <small>{weather?.nowDesc || '—'}</small>
+            </div>
+          </div>
           <div>Precip: {weather ? `${weather.precipMm} mm` : '—'}</div>
           <small>AM: {weather?.morning || '—'}</small>
           <small>PM: {weather?.afternoon || '—'}</small>

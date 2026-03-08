@@ -6,6 +6,8 @@ header h1{margin:0}.panel{background:#0b1f49;border:1px solid #21478e;border-rad
 .weatherBox{min-width:220px;background:rgba(14,40,93,.85);border:1px solid #3d6dcc;border-radius:10px;padding:10px;display:grid;gap:3px}
 .weatherBox h3{margin:0 0 4px 0;font-size:.95rem}
 .weatherBox small{opacity:.9}
+.wxNow{display:flex;align-items:center;gap:8px}
+.wxIcon{font-size:1.6rem;line-height:1}
 .ganttHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .ganttControls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .ganttClocks{display:flex;gap:12px;font-size:.85rem;color:#b9cdf7}
