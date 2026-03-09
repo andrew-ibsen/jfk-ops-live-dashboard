@@ -1,4 +1,4 @@
-const crypto = require('crypto')
+import crypto from 'node:crypto'
 
 function nyDateString(offsetDays = 0) {
   const d = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000)
@@ -40,4 +40,4 @@ function checkAuth(req, res) {
   return true
 }
 
-module.exports = { checkAuth, dailyPassword, nyDateString }
+export { checkAuth, dailyPassword, nyDateString }

@@ -1,6 +1,6 @@
-const { checkAuth } = require('./_auth')
+import { checkAuth } from './_auth.js'
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (!checkAuth(req, res)) return
   res.status(200).json({ ok: true, service: 'jfk-ops-live-dashboard' })
 }

@@ -1,4 +1,4 @@
-const { checkAuth } = require('./_auth')
+import { checkAuth } from './_auth.js'
 
 async function fetchWithTimeout(url, timeoutMs = 12000) {
   const ctrl = new AbortController()
@@ -6,7 +6,7 @@ async function fetchWithTimeout(url, timeoutMs = 12000) {
   try { return await fetch(url, { signal: ctrl.signal }) } finally { clearTimeout(t) }
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (!checkAuth(req, res)) return
   try {
     const lamin = req.query.lamin || '40.2'

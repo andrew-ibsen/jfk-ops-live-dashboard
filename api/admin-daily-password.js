@@ -1,6 +1,6 @@
-const { dailyPassword, nyDateString } = require('./_auth')
+import { dailyPassword, nyDateString } from './_auth.js'
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   const token = String(req.headers['x-admin-token'] || '')
   if (!process.env.PASSWORD_BOT_TOKEN || token !== process.env.PASSWORD_BOT_TOKEN) {
     return res.status(401).json({ ok: false, reason: 'unauthorized' })
