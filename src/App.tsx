@@ -250,7 +250,18 @@ async function fetchOpenSky(station: Station, allowedPrefixes: string[], passwor
   const url = `/api/opensky?lamin=${station.bbox.lamin}&lomin=${station.bbox.lomin}&lamax=${station.bbox.lamax}&lomax=${station.bbox.lomax}`
   const res = await fetch(url, { headers: authHeaders(password) })
   const json = await res.json().catch(() => ({}))
-  const states = (json.states || []) as any[]
+  let states = (json.states || []) as any[]
+
+  // Global BAW assist: if station-scope returns sparse rows, enrich with worldwide BAW states.
+  if (states.length < 3) {
+    try {
+      const g = await fetch('/api/opensky?global=1&prefix=BAW', { headers: authHeaders(password) })
+      const gj = await g.json().catch(() => ({}))
+      const gstates = (gj.states || []) as any[]
+      if (gstates.length) states = [...states, ...gstates]
+    } catch {}
+  }
+
   const prefixes = allowedPrefixes.length ? allowedPrefixes : ['BAW', 'EIN', 'IBE', 'QFA', 'ANZ', 'NAX', 'JAL', 'ANA', 'FIN', 'LYX']
   const rows = states
     .filter((s) => prefixes.some((p) => String(s[1] || '').trim().startsWith(p)))
@@ -270,7 +281,9 @@ async function fetchOpenSky(station: Station, allowedPrefixes: string[], passwor
       return { callsign: String(s[1] || '').trim(), hex: String(s[0] || '').toUpperCase(), status }
     })
 
-  return { rows, meta: json?.meta || { ok: res.ok, rows: states.length, reason: res.ok ? 'ok' : `http_${res.status}` } }
+  const deduped = Array.from(new Map(rows.map((r) => [`${r.callsign}|${r.hex}`, r])).values())
+
+  return { rows: deduped, meta: json?.meta || { ok: res.ok, rows: states.length, reason: res.ok ? 'ok' : `http_${res.status}` } }
 }
 
 function primaryFlightToken(flight: string) {
