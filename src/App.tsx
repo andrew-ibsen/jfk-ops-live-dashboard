@@ -101,6 +101,24 @@ const JFK_BA_DAY_OVERRIDES: Record<string, { eta?: string; std?: string; gate?: 
   'BA183/178': { eta: '2305', std: '0905', gate: '20' }
 }
 
+const JFK_DEFAULT_REG_BY_FLIGHT: Record<string, string> = {
+  'IB211/212': 'EC-OIL',
+  'Z0701/702': 'G-CKWP'
+}
+
+const JFK_DEFAULT_ASSIGNMENTS: Record<string, { certifier?: string; mechanic?: string }> = {
+  'JL006/005': { certifier: 'Jason Davies' },
+  'NH110/109': { certifier: 'Rahman Arikan' },
+  'BA117/176': { certifier: 'Anthony Derasmo', mechanic: 'Nikolas Dundon' },
+  'BA175/172': { certifier: 'Anthony Derasmo', mechanic: 'Nikolas Dundon' },
+  'EI105/104': { certifier: 'Rahman Arikan', mechanic: 'Fahim Abrar' },
+  'BA173/112': { certifier: 'Devran Turegun', mechanic: 'Nikolas Dundon' },
+  'QF3/4': { certifier: 'Ray Abes', mechanic: 'Naresh Dindiall' },
+  'EI111/110': { certifier: 'Mark Ferrel', mechanic: 'Fahim Abrar' },
+  'IB211/212': { certifier: 'Saleh Al Assaf' },
+  'BA177/174': { certifier: 'Rahman Arikan', mechanic: 'Frank Richmond' }
+}
+
 const PLANNED: Omit<Flight, 'key' | 'reg' | 'status'>[] = [
   { airline: 'EI', flight: 'EI105/104', eta: '1455', std: '1800', aircraftType: 'A330' },
   { airline: 'EI', flight: 'EI111/110', eta: '1625', std: '1830', aircraftType: 'A321' },
@@ -537,6 +555,9 @@ export default function App() {
       if (manualRegOverrides[manualKey]) f.reg = manualRegOverrides[manualKey]
       if (manualTypeOverrides[manualKey]) f.aircraftType = manualTypeOverrides[manualKey]
       if (manualGateOverrides[manualKey]) f.gate = manualGateOverrides[manualKey]
+      if (!f.reg && stationCode === 'JFK' && JFK_DEFAULT_REG_BY_FLIGHT[f.flight]) {
+        f.reg = JFK_DEFAULT_REG_BY_FLIGHT[f.flight]
+      }
 
       if (stationCode === 'JFK' && f.airline === 'BA') {
         const o = JFK_BA_DAY_OVERRIDES[f.flight]
@@ -919,6 +940,7 @@ export default function App() {
           <tbody>
             {mergedFlights.map((f) => {
               const a = assignments[f.key] || {}
+              const d = stationCode === 'JFK' ? (JFK_DEFAULT_ASSIGNMENTS[f.flight] || {}) : {}
               return (
                 <tr key={f.key} className={f.status === 'cancelled' ? 'rowCancelled' : ''}>
                   <td>{f.airline}</td>
@@ -931,13 +953,13 @@ export default function App() {
                   <td>{normalizeTime(f.std) || '-'}</td>
                   <td><span className={`status ${f.status || 'scheduled'}`}>{f.status || 'scheduled'}</span></td>
                   <td>
-                    <select value={a.certifier || ''} onChange={(e) => setAssign(f.key, 'certifier', e.target.value)}>
+                    <select value={a.certifier || d.certifier || ''} onChange={(e) => setAssign(f.key, 'certifier', e.target.value)}>
                       <option value="">Assign…</option>
                       {certifierOptions.map((s) => <option key={`c-${s}`} value={s}>{s}</option>)}
                     </select>
                   </td>
                   <td>
-                    <select value={a.mechanic || ''} onChange={(e) => setAssign(f.key, 'mechanic', e.target.value)}>
+                    <select value={a.mechanic || d.mechanic || ''} onChange={(e) => setAssign(f.key, 'mechanic', e.target.value)}>
                       <option value="">Assign…</option>
                       {mechanicOptions.map((s) => <option key={`m-${s}`} value={s}>{s}</option>)}
                     </select>
