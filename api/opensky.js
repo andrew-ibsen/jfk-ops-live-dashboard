@@ -18,8 +18,9 @@ export default async function handler(req, res) {
     const json = await r.json().catch(() => ({}))
     const rows = Array.isArray(json?.states) ? json.states.length : 0
     const meta = { ok: r.ok, rows, reason: r.ok ? 'ok' : `http_${r.status}` }
-    res.status(r.ok ? 200 : 502).json({ states: json?.states || [], meta })
+    // Graceful fail: keep API contract stable for UI even when OpenSky is blocked/rate-limited upstream.
+    res.status(200).json({ states: json?.states || [], meta })
   } catch (e) {
-    res.status(500).json({ states: [], meta: { ok: false, rows: 0, reason: e?.name === 'AbortError' ? 'timeout' : (e?.message || 'proxy_error') } })
+    res.status(200).json({ states: [], meta: { ok: false, rows: 0, reason: e?.name === 'AbortError' ? 'timeout' : (e?.message || 'proxy_error') } })
   }
 }
