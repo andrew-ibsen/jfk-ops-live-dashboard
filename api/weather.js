@@ -1,4 +1,4 @@
-import { checkAuth } from './_auth.js'
+import { checkAuth, queryParam } from './_auth.js'
 
 async function fetchWithTimeout(url, timeoutMs = 12000) {
   const ctrl = new AbortController()
@@ -9,7 +9,7 @@ async function fetchWithTimeout(url, timeoutMs = 12000) {
 export default async function handler(req, res) {
   if (!checkAuth(req, res)) return
   try {
-    const station = req.query.station || 'JFK'
+    const station = queryParam(req, 'station', 'JFK')
     const url = `https://wttr.in/${encodeURIComponent(station)}?format=j1`
     const r = await fetchWithTimeout(url)
     const text = await r.text()

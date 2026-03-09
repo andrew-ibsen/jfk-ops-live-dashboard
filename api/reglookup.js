@@ -1,4 +1,4 @@
-import { checkAuth } from './_auth.js'
+import { checkAuth, queryParam } from './_auth.js'
 
 async function fetchWithTimeout(url, timeoutMs = 12000) {
   const ctrl = new AbortController()
@@ -9,7 +9,7 @@ async function fetchWithTimeout(url, timeoutMs = 12000) {
 export default async function handler(req, res) {
   if (!checkAuth(req, res)) return
   try {
-    const hex = String(req.query.hex || '').toLowerCase().trim()
+    const hex = String(queryParam(req, 'hex', '')).toLowerCase().trim()
     if (!hex) return res.status(400).json({ ok: false, reason: 'missing_hex' })
 
     const candidates = [

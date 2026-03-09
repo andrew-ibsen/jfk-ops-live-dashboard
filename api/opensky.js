@@ -1,4 +1,4 @@
-import { checkAuth } from './_auth.js'
+import { checkAuth, queryParam } from './_auth.js'
 
 async function fetchWithTimeout(url, timeoutMs = 12000) {
   const ctrl = new AbortController()
@@ -9,10 +9,10 @@ async function fetchWithTimeout(url, timeoutMs = 12000) {
 export default async function handler(req, res) {
   if (!checkAuth(req, res)) return
   try {
-    const lamin = req.query.lamin || '40.2'
-    const lomin = req.query.lomin || '-74.3'
-    const lamax = req.query.lamax || '41.1'
-    const lomax = req.query.lomax || '-73.2'
+    const lamin = queryParam(req, 'lamin', '40.2')
+    const lomin = queryParam(req, 'lomin', '-74.3')
+    const lamax = queryParam(req, 'lamax', '41.1')
+    const lomax = queryParam(req, 'lomax', '-73.2')
     const url = `https://opensky-network.org/api/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`
     const r = await fetchWithTimeout(url)
     const json = await r.json().catch(() => ({}))
@@ -20,6 +20,6 @@ export default async function handler(req, res) {
     const meta = { ok: r.ok, rows, reason: r.ok ? 'ok' : `http_${r.status}` }
     res.status(r.ok ? 200 : 502).json({ states: json?.states || [], meta })
   } catch (e) {
-    res.status(500).json({ states: [], meta: { ok: false, rows: 0, reason: e?.name === 'AbortError' ? 'timeout' : 'proxy_error' } })
+    res.status(500).json({ states: [], meta: { ok: false, rows: 0, reason: e?.name === 'AbortError' ? 'timeout' : (e?.message || 'proxy_error') } })
   }
 }

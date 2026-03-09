@@ -17,8 +17,16 @@ function dailyPassword(secret, dateStr) {
   return `OPS-${sig}`
 }
 
+function headerValue(req, key) {
+  const k = String(key || '').toLowerCase()
+  const h = req?.headers
+  if (!h) return ''
+  if (typeof h.get === 'function') return String(h.get(k) || '')
+  return String(h[k] || h[key] || '')
+}
+
 function checkAuth(req, res) {
-  const provided = String(req.headers['x-ops-password'] || '')
+  const provided = headerValue(req, 'x-ops-password')
   const secret = process.env.DASHBOARD_PASSWORD_SECRET || ''
   const masterPassword = process.env.DASHBOARD_MASTER_PASSWORD || 'BAENGJFK'
 
@@ -40,4 +48,14 @@ function checkAuth(req, res) {
   return true
 }
 
-export { checkAuth, dailyPassword, nyDateString }
+function queryParam(req, key, fallback = '') {
+  if (req?.query && key in req.query) return String(req.query[key] ?? fallback)
+  try {
+    const u = new URL(req?.url || '', 'http://localhost')
+    return String(u.searchParams.get(key) ?? fallback)
+  } catch {
+    return String(fallback)
+  }
+}
+
+export { checkAuth, dailyPassword, nyDateString, queryParam, headerValue }
